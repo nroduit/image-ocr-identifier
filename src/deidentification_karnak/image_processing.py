@@ -200,6 +200,8 @@ def _is_date_slash(text: str, slash_idx: int) -> bool:
     # Verify the preceding segment (back to last separator) has no letters
     k = j
     while k >= 0 and text[k] not in (" ", "\t", ",", "/"):
+        if text[k] == "." and k > 0 and text[k - 1].isalpha():
+            break  # abbreviation dot acts as segment boundary
         if text[k].isalpha():
             return False
         k -= 1
