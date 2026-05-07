@@ -28,6 +28,8 @@ MODEL_TEXT_RECOGNITION_V5 = str(
     _BASE_DATA_PATH / "models" / "recognition" / "latin_PP-OCRv5_mobile_rec"
 )
 
+SPACE_WEIGHT = 0.2
+
 _det_model_name = "PP-OCRv3_mobile_det"
 _rec_model_name = "latin_PP-OCRv3_mobile_rec"
 # _det_model_name = "PP-OCRv5_server_det"
@@ -103,11 +105,15 @@ def _split_single_block(
         int(box[2]),
         int(box[3]),
     )
-    total_len = len(text)
+    total_len = sum(
+        [SPACE_WEIGHT if c == " " else 1.0 for c in text]
+    )  # Treat spaces as 0.3 characters for width estimation
     if total_len == 0:
         return [(text, box)]
 
     print(parts_with_positions)
+    print(x_min, y_min, x_max, y_max)
+    print("---------")
 
     box_width = x_max - x_min
     pixel_per_char = box_width / total_len
@@ -115,12 +121,23 @@ def _split_single_block(
     padding = max(3, int(pixel_per_char * 0.9))
 
     results = []
+    prev_end_idx = None
     for part, start_idx, end_idx in parts_with_positions:
-        sub_x_min = max(x_min, int(x_min + start_idx * pixel_per_char) - padding)
-        sub_x_max = min(x_max, int(x_min + end_idx * pixel_per_char) + padding)
+        visual_start_idx = prev_end_idx if prev_end_idx is not None else start_idx
+        sub_x_min = max(
+            x_min, int(x_min + _effective_pos(text, visual_start_idx) * pixel_per_char)
+        )
+        sub_x_max = min(
+            x_max, int(x_min + _effective_pos(text, end_idx) * pixel_per_char) + padding
+        )
         results.append((part, [sub_x_min, y_min, sub_x_max, y_max]))
+        prev_end_idx = end_idx + 1
 
     return results
+
+
+def _effective_pos(text: str, idx: int, space_weight: float = SPACE_WEIGHT) -> float:
+    return sum(space_weight if c == " " else 1.0 for c in text[:idx])
 
 
 def _find_parts(text: str) -> list[tuple[str, int, int]]:

@@ -40,7 +40,7 @@ def is_sensitive(
     ocr_text: str,
     lookup: set[str],
     threshold: int = 85,
-    min_length_ratio: float = 0.4,
+    min_length_ratio: float = 0.5,
     min_length: int = 3,
 ) -> bool:
     text = normalize_text(ocr_text)
@@ -241,6 +241,12 @@ def _text_month_variants(dt: datetime) -> set[str]:
                 f"{month_name} {d:02d} {y}",
                 f"{y} {month_name} {d}",
                 f"{y} {month_name} {d:02d}",
+                f"{y}{month_name}{d}",
+                f"{y}{month_name}{d:02d}",
+                f"{y}{month_name} {d}",
+                f"{y}{month_name} {d:02d}",
+                f"{y} {month_name}{d}",
+                f"{y} {month_name}{d:02d}",
             }
         )
     return variants
