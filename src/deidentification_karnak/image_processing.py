@@ -111,10 +111,6 @@ def _split_single_block(
     if total_len == 0:
         return [(text, box)]
 
-    print(parts_with_positions)
-    print(x_min, y_min, x_max, y_max)
-    print("---------")
-
     box_width = x_max - x_min
     pixel_per_char = box_width / total_len
     # Padding: 90% of a character width on each side, minimum 3px
