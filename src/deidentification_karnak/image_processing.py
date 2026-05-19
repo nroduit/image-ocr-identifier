@@ -152,7 +152,7 @@ def _find_parts(text: str) -> list[tuple[str, int, int]]:
         if text[i] in (",", " ", "\t"):
             i += 1
             continue
-        # Slash at token boundary is a delimiter
+        # Slash at token boundary is a delimiter so we skip it
         if text[i] == "/":
             i += 1
             continue

@@ -134,17 +134,18 @@ def build_sensitive_lookup(data: dict[str, str]) -> set[str]:
 def expand_patient_name(name: str) -> set[str]:
     parts = name.split("^")
     last = normalize_text(parts[0]) if len(parts) > 0 else ""
-    first = normalize_text(parts[1]) if len(parts) > 1 else ""
+    firsts = normalize_text_list(parts[1].split(",")) if len(parts) > 1 else []
 
     variants = set()
 
-    if first:
-        variants.add(first)
+    if firsts:
+        variants.update(firsts)
     if last:
         variants.add(last)
-    if first and last:
-        variants.add(f"{first} {last}")
-        variants.add(f"{last} {first}")
+    if firsts and last:
+        for first in firsts:
+            variants.add(f"{first} {last}")
+            variants.add(f"{last} {first}")
 
     return variants
 
