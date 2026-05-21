@@ -139,10 +139,12 @@ def _effective_pos(text: str, idx: int, space_weight: float = SPACE_WEIGHT) -> f
 def _find_parts(text: str) -> list[tuple[str, int, int]]:
     """Find non-delimiter parts with their start and end character indices.
 
-    Delimiters are: commas and non-date slashes. Whitespace is NOT a delimiter
-    so that text dates like "2021 Jan 26" or "26 janvier 2021" stay as one block.
+    Delimiters are: commas, non-date slashes, and dots between long numeric
+    segments. Whitespace is NOT a delimiter so that text dates like
+    "2021 Jan 26" or "26 janvier 2021" stay as one block.
     Slashes between numeric segments (e.g. "27/10/2020", "1928 / 03 / 03") are
-    also preserved.
+    also preserved. Dots between short numeric segments (e.g. "27.10.2020") are
+    preserved as date-like patterns.
     """
     parts = []
     i = 0
@@ -154,6 +156,10 @@ def _find_parts(text: str) -> list[tuple[str, int, int]]:
             continue
         # Slash at token boundary is a delimiter so we skip it
         if text[i] == "/":
+            i += 1
+            continue
+        # Dot as field delimiter (preserved only for dates and alphanumeric tokens)
+        if text[i] == "." and _is_dot_delimiter(text, i):
             i += 1
             continue
         # Start of a token
@@ -170,6 +176,9 @@ def _find_parts(text: str) -> list[tuple[str, int, int]]:
                         i += 1
                     continue
                 else:
+                    break
+            if text[i] == ".":
+                if _is_dot_delimiter(text, i):
                     break
             i += 1
         # Strip trailing whitespace from the token
@@ -196,6 +205,8 @@ def _is_date_slash(text: str, slash_idx: int) -> bool:
     # Verify the preceding segment (back to last separator) has no letters
     k = j
     while k >= 0 and text[k] not in (" ", "\t", ",", "/"):
+        if not text[k].isalnum() and text[k] != ".":
+            break  # non-alphanumeric boundary (e.g. parenthesis)
         if text[k] == "." and k > 0 and text[k - 1].isalpha():
             break  # abbreviation dot acts as segment boundary
         if text[k].isalpha():
@@ -206,3 +217,44 @@ def _is_date_slash(text: str, slash_idx: int) -> bool:
     while j < len(text) and text[j] in (" ", "\t"):
         j += 1
     return j < len(text) and text[j].isdigit()
+
+
+def _is_dot_delimiter(text: str, dot_idx: int) -> bool:
+    """Return True if the dot at dot_idx should act as a field delimiter.
+
+    A dot is preserved (not a delimiter) when:
+    - Adjacent character on either side is not alphanumeric (e.g. "(..20")
+    - It's inside an alphanumeric token (e.g. "IM1.3", "ITm1.0")
+    - It's between short numeric segments (date-like, e.g. "27.10.2020")
+    """
+    # Dot is only a delimiter if both adjacent characters are alphanumeric
+    if dot_idx == 0 or dot_idx >= len(text) - 1:
+        return False
+    if not text[dot_idx - 1].isalnum() or not text[dot_idx + 1].isalnum():
+        return False
+
+    # Count consecutive digits immediately before the dot
+    j = dot_idx - 1
+    while j >= 0 and text[j].isdigit():
+        j -= 1
+    digits_before = dot_idx - 1 - j
+
+    # Count consecutive digits immediately after the dot
+    k = dot_idx + 1
+    while k < len(text) and text[k].isdigit():
+        k += 1
+    digits_after = k - dot_idx - 1
+
+    # If both sides have digits adjacent to the dot
+    if digits_before > 0 and digits_after > 0:
+        # Inside an alphanumeric token (letter before the digit run) -> preserve
+        if j >= 0 and text[j].isalpha():
+            return False
+        # Both digit runs are short -> date-like pattern -> preserve
+        if digits_before <= 4 and digits_after <= 4:
+            return False
+        # Long numeric segments -> delimiter
+        return True
+
+    # Alphabetic or mixed segments on both sides (e.g. "JEAN.ALBERT") -> delimiter
+    return True
