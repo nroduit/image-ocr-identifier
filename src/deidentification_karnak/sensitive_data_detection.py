@@ -40,7 +40,7 @@ def is_sensitive(
     ocr_text: str,
     lookup: set[str],
     threshold: int = 85,
-    min_length_ratio: float = 0.5,
+    min_length_ratio: float = 0.45,
     min_length: int = 3,
 ) -> bool:
     text = normalize_text(ocr_text)
@@ -97,6 +97,8 @@ def normalize_text(text: str) -> str:
     text = re.sub(r"[^a-z0-9\s]", "", text)
     # Replace multiple whitespace with a single space and trim
     text = re.sub(r"\s+", " ", text).strip()
+    # Fix common OCR confusion: digit 0 between letters is likely 'o'
+    text = re.sub(r"(?<=[a-z])0(?=[a-z])", "o", text)
     return text
 
 
@@ -127,7 +129,10 @@ def build_sensitive_lookup(data: dict[str, str]) -> set[str]:
     if "PatientAge" in data:
         lookup |= expand_age(data["PatientAge"])
 
-    return {normalize_text(x) for x in lookup}
+    normalized = {normalize_text(x) for x in lookup}
+    # Add space-stripped variants for matching OCR text that omits spaces
+    normalized |= {t.replace(" ", "") for t in normalized if " " in t}
+    return normalized
 
 
 # Patient Name

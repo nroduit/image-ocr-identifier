@@ -139,9 +139,9 @@ def _effective_pos(text: str, idx: int, space_weight: float = SPACE_WEIGHT) -> f
 def _find_parts(text: str) -> list[tuple[str, int, int]]:
     """Find non-delimiter parts with their start and end character indices.
 
-    Delimiters are: commas, non-date slashes, and dots between long numeric
-    segments. Whitespace is NOT a delimiter so that text dates like
-    "2021 Jan 26" or "26 janvier 2021" stay as one block.
+    Delimiters are: commas, non-date slashes, consecutive dots (e.g. "..."),
+    and single dots between long numeric segments. Whitespace is NOT a delimiter
+    so that text dates like "2021 Jan 26" or "26 janvier 2021" stay as one block.
     Slashes between numeric segments (e.g. "27/10/2020", "1928 / 03 / 03") are
     also preserved. Dots between short numeric segments (e.g. "27.10.2020") are
     preserved as date-like patterns.
@@ -158,6 +158,12 @@ def _find_parts(text: str) -> list[tuple[str, int, int]]:
         if text[i] == "/":
             i += 1
             continue
+        # Consecutive dots (2+) are delimiters (OCR truncation artifact)
+        # but only at token boundaries after meaningful content
+        if text[i] == "." and i + 1 < n and text[i + 1] == ".":
+            while i < n and text[i] == ".":
+                i += 1
+            continue
         # Dot as field delimiter (preserved only for dates and alphanumeric tokens)
         if text[i] == "." and _is_dot_delimiter(text, i):
             i += 1
@@ -167,6 +173,11 @@ def _find_parts(text: str) -> list[tuple[str, int, int]]:
         while i < n:
             if text[i] == ",":
                 break
+            # Consecutive dots break the token only if enough content precedes them
+            if text[i] == "." and i + 1 < n and text[i + 1] == ".":
+                alnum_before = sum(1 for c in text[start:i] if c.isalnum())
+                if alnum_before >= 4:
+                    break
             if text[i] == "/":
                 # Preserve slash if it separates numeric segments (date-like)
                 if _is_date_slash(text, i):
