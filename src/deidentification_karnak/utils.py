@@ -311,3 +311,10 @@ def cv2_to_karnak_coord(box: list[int | float]) -> list[int]:
     else:
         logger.debug("Warning: Skipping invalid box format: %s", box)
         return ""
+
+
+def convert_upscaled_boxes(
+    boxes: list[list[int | float]], scale_factor: float
+) -> list[list[int | float]]:
+    """Convert boxes from upscaled coordinates back to original image coordinates."""
+    return [[coord / scale_factor for coord in box] for box in boxes]

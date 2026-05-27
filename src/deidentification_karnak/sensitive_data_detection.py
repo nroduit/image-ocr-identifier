@@ -58,12 +58,17 @@ def is_sensitive(
             continue
         if len(term) / len(text) < min_length_ratio:
             continue
-        if fuzz.partial_ratio(text, term) > threshold:
+        score = fuzz.partial_ratio(text, term)
+        if score > threshold:
+            # For short texts, partial_ratio gives inflated scores from
+            # substring coincidences. Require full-string similarity too.
+            if len(text) <= 5 and fuzz.ratio(text, term) < 70:
+                continue
             logger.debug(
                 "Partial Match found: '%s' matches '%s' with score %d",
                 text,
                 term,
-                fuzz.partial_ratio(text, term),
+                score,
             )
             return True
     return False

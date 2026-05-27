@@ -5,7 +5,11 @@ import re
 from fastapi import APIRouter, Form, UploadFile, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
 from deidentification_karnak.color_detection import get_colors
-from deidentification_karnak.debug import save_debug_image, save_debug_split_boxes
+from deidentification_karnak.debug import (
+    create_debug_session,
+    save_debug_image,
+    save_debug_split_boxes,
+)
 from deidentification_karnak.image_processing import (
     process_image_with_ocr,
     split_ocr_blocks,
@@ -14,9 +18,11 @@ from deidentification_karnak.models.response import (
     DeidentificationResponse,
     MaskGroup,
 )
+from deidentification_karnak.preprocessing import preprocess_image_for_ocr
 from deidentification_karnak.sensitive_data_detection import detect_sensitive_data
 from deidentification_karnak.utils import (
     bgr_to_hex,
+    convert_upscaled_boxes,
     decode_image_bytes,
     expand_boxes,
     format_boxes,
@@ -171,26 +177,34 @@ async def deidentify_image(
             detail="Failed to decode image. Provide rows, columns, bits_allocated, samples_per_pixel, transfer_syntax_uid, and photometric_interpretation.",
         )
 
+    # Preprocessing
+    preprocessed_image, scale_factor = preprocess_image_for_ocr(decoded_image)
+
+    debug_session = create_debug_session(image.filename or "image")
+
+    # OCR and sensitive data detection
     ocr_result = await asyncio.to_thread(
         process_image_with_ocr,
-        decoded_image,
-        image_name=image.filename or "image",
+        preprocessed_image,
+        debug_session=debug_session,
     )
 
     if not ocr_result["texts"]:
         return _versioned_response(no_sensitive, version)
 
     ocr_result = split_ocr_blocks(ocr_result)
-    save_debug_split_boxes(decoded_image, ocr_result, image.filename or "image")
+    save_debug_split_boxes(preprocessed_image, ocr_result, debug_session)
+
+    ocr_result["boxes"] = convert_upscaled_boxes(ocr_result["boxes"], scale_factor)
 
     masks = await asyncio.to_thread(detect_sensitive_data, ocr_result, sensitive_data)
 
     # Expand boxes a little bit to cover text border pixels
-    masks["boxes"] = expand_boxes(masks["boxes"], margin=1)
+    masks["boxes"] = expand_boxes(masks["boxes"], margin=2)
 
     color_to_boxes = await asyncio.to_thread(get_colors, decoded_image, masks["boxes"])
 
-    save_debug_image(decoded_image, color_to_boxes, image.filename or "image")
+    save_debug_image(decoded_image, color_to_boxes, debug_session)
 
     mask_groups = [
         MaskGroup(

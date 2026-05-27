@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import numpy as np
 
-from deidentification_karnak.debug import save_debug_ocr
+from deidentification_karnak.debug import DebugSession, save_debug_ocr
 
 os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
 from paddleocr import PaddleOCR
@@ -49,10 +49,10 @@ _ocr = PaddleOCR(
 
 
 def process_image_with_ocr(
-    image: np.ndarray, image_name: str = "image"
+    image: np.ndarray, debug_session: DebugSession | None = None
 ) -> dict[str, list]:
     result = _ocr.predict(image, return_word_box=False)
-    save_debug_ocr(result, image_name=image_name)
+    save_debug_ocr(result, debug_session)
     texts, boxes = result[0]["rec_texts"], result[0]["rec_boxes"]
     return {"texts": texts, "boxes": boxes}
 
@@ -259,7 +259,7 @@ def _is_dot_delimiter(text: str, dot_idx: int) -> bool:
     # If both sides have digits adjacent to the dot
     if digits_before > 0 and digits_after > 0:
         # Inside an alphanumeric token (letter before the digit run) -> preserve
-        if j >= 0 and text[j].isalpha():
+        if j >= 0 and text[j].isalpha() and digits_before <= 7 and digits_after <= 7:
             return False
         # Both digit runs are short -> date-like pattern -> preserve
         if digits_before <= 4 and digits_after <= 4:
