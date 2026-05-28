@@ -8,6 +8,7 @@ from deidentification_karnak.color_detection import get_colors
 from deidentification_karnak.debug import (
     create_debug_session,
     save_debug_image,
+    save_debug_preprocessed,
     save_debug_split_boxes,
 )
 from deidentification_karnak.image_processing import (
@@ -179,8 +180,8 @@ async def deidentify_image(
 
     # Preprocessing
     preprocessed_image, scale_factor = preprocess_image_for_ocr(decoded_image)
-
     debug_session = create_debug_session(image.filename or "image")
+    save_debug_preprocessed(preprocessed_image, debug_session)
 
     # OCR and sensitive data detection
     ocr_result = await asyncio.to_thread(

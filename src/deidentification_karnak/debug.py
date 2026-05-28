@@ -96,3 +96,12 @@ def save_debug_split_boxes(
 
     output_path = session.folder / "split_boxes.png"
     cv2.imwrite(str(output_path), img)
+
+
+def save_debug_preprocessed(image: np.ndarray, session: DebugSession | None) -> None:
+    if session is None:
+        return
+    import cv2
+
+    session._ensure_folder()
+    cv2.imwrite(str(session.folder / "preprocessed.png"), image)

@@ -11,6 +11,8 @@ def preprocess_image_for_ocr(image: np.ndarray) -> tuple[np.ndarray, float]:
     image_processed, scale_factor = upscale_image(image, min_side=1500)
     # CLAHE
     image_processed = apply_clahe(image_processed, clip_limit=2.0, tile_size=8)
+    # Unsharp masking
+    image_processed = apply_unsharp_mask(image_processed, sigma=1.0, strength=1.5)
     return image_processed, scale_factor
 
 
@@ -41,3 +43,10 @@ def apply_clahe(
     clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(tile_size, tile_size))
     l_channel = clahe.apply(l_channel)
     return cv2.cvtColor(cv2.merge([l_channel, a_channel, b_channel]), cv2.COLOR_LAB2BGR)
+
+
+def apply_unsharp_mask(
+    image: np.ndarray, sigma: float = 1.0, strength: float = 1.5
+) -> np.ndarray:
+    blurred = cv2.GaussianBlur(image, (0, 0), sigma)
+    return cv2.addWeighted(image, 1 + strength, blurred, -strength, 0)
