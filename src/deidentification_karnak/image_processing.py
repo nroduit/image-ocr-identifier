@@ -45,6 +45,8 @@ _ocr = PaddleOCR(
     text_recognition_model_dir=MODEL_TEXT_RECOGNITION_V3,
     use_doc_orientation_classify=False,
     use_doc_unwarping=False,
+    det_db_thresh=0.2,
+    det_db_box_thresh=0.4,
 )
 
 
@@ -73,14 +75,16 @@ def split_ocr_blocks(ocr_result: dict[str, list]) -> dict[str, list]:
 
     split_texts = []
     split_boxes = []
+    groups = []
 
-    for text, box in zip(texts, boxes):
+    for group_id, (text, box) in enumerate(zip(texts, boxes)):
         sub_blocks = _split_single_block(text, box)
         for sub_text, sub_box in sub_blocks:
             split_texts.append(sub_text)
             split_boxes.append(sub_box)
+            groups.append(group_id)
 
-    return {"texts": split_texts, "boxes": split_boxes}
+    return {"texts": split_texts, "boxes": split_boxes, "groups": groups}
 
 
 def _split_single_block(

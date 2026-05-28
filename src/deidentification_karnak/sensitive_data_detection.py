@@ -17,18 +17,33 @@ def detect_sensitive_data(
 ) -> Dict[str, list]:
     ocr_texts = ocr_result["texts"]
     ocr_boxes = ocr_result["boxes"]
+    groups = ocr_result.get("groups")
 
     # Build lookup set from sensitive data
     lookup = build_sensitive_lookup(sensitive_data_list)
 
+    sensitive_indices = set()
+
+    for i, text in enumerate(ocr_texts):
+        if is_sensitive(text, lookup) or token_sensitive(text, lookup):
+            sensitive_indices.add(i)
+
+    # Second pass: for siblings in the same group as a match, retry with relaxed threshold
+    if groups:
+        sensitive_groups = {groups[i] for i in sensitive_indices}
+        for i, g in enumerate(groups):
+            if i not in sensitive_indices and g in sensitive_groups:
+                if is_sensitive(ocr_texts[i], lookup, threshold=60):
+                    sensitive_indices.add(i)
+
     filtered_texts = []
     filtered_boxes = []
-
-    for text, box in zip(ocr_texts, ocr_boxes):
-        if is_sensitive(text, lookup) or token_sensitive(text, lookup):
-            filtered_texts.append(text)
-            filtered_boxes.append(numpy_to_python_type(box))
-            logger.debug("Sensitive data detected: '%s' at box %s", text, box)
+    for i in sorted(sensitive_indices):
+        filtered_texts.append(ocr_texts[i])
+        filtered_boxes.append(numpy_to_python_type(ocr_boxes[i]))
+        logger.debug(
+            "Sensitive data detected: '%s' at box %s", ocr_texts[i], ocr_boxes[i]
+        )
 
     return {
         "texts": filtered_texts,
