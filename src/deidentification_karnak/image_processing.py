@@ -30,19 +30,22 @@ MODEL_TEXT_RECOGNITION_V5 = str(
 
 SPACE_WEIGHT = 0.2
 
-_det_model_name = "PP-OCRv3_mobile_det"
-_rec_model_name = "latin_PP-OCRv3_mobile_rec"
-# _det_model_name = "PP-OCRv5_server_det"
-# _rec_model_name = "latin_PP-OCRv5_mobile_rec"
+# _det_model_name = "PP-OCRv3_mobile_det"
+# _rec_model_name = "latin_PP-OCRv3_mobile_rec"
+_det_model_name = "PP-OCRv5_mobile_det"
+_rec_model_name = "latin_PP-OCRv5_mobile_rec"
+
+_det_model_dir = MODEL_TEXT_DETECTION_MOBILE_V5
+_rec_model_dir = MODEL_TEXT_RECOGNITION_V5
 
 # Initialize OCR
 _ocr = PaddleOCR(
     use_angle_cls=False,
     lang="latin",
     text_detection_model_name=_det_model_name,
-    text_detection_model_dir=MODEL_TEXT_DETECTION_V3,
+    text_detection_model_dir=_det_model_dir,
     text_recognition_model_name=_rec_model_name,
-    text_recognition_model_dir=MODEL_TEXT_RECOGNITION_V3,
+    text_recognition_model_dir=_rec_model_dir,
     use_doc_orientation_classify=False,
     use_doc_unwarping=False,
     det_db_thresh=0.2,
@@ -270,6 +273,15 @@ def _is_dot_delimiter(text: str, dot_idx: int) -> bool:
             return False
         # Long numeric segments -> delimiter
         return True
+
+    # Letter directly before the dot followed by a short digit run -> date-like
+    # (e.g. "Nov.08", "Jan.2019"). Long digit runs (IDs) still split.
+    if digits_before == 0 and 0 < digits_after <= 4:
+        return False
+
+    # For the reverse case : (e.g. "08.Nov")
+    if digits_after == 0 and 0 < digits_before <= 4:
+        return False
 
     # Alphabetic or mixed segments on both sides (e.g. "JEAN.ALBERT") -> delimiter
     return True

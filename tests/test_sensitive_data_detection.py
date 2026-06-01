@@ -373,6 +373,24 @@ def test_detect_sensitive_data_with_matches_tricky_case_3():
     assert "FICLE" in result["texts"]
 
 
+def test_detect_sensitive_data_with_matches_tricky_case_3():
+    ocr_result = {
+        "texts": ["AnOnYmE.", "FICLE"],
+        "boxes": [
+            [0, 0, 10, 10],
+            [20, 20, 30, 30],
+        ],
+    }
+    ocr_result = split_ocr_blocks(ocr_result)
+    sensitive_data = {
+        "PatientName": "ANONYME^FILLE",
+    }
+    result = detect_sensitive_data(ocr_result, sensitive_data)
+
+    assert "AnOnYmE." in result["texts"]
+    assert "FICLE" in result["texts"]
+
+
 def test_detect_sensitive_data_with_date_matches():
     ocr_result = {
         "texts": [

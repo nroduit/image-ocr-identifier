@@ -5,6 +5,7 @@ from typing import Dict, Union
 import unicodedata
 import numpy as np
 from rapidfuzz import fuzz
+from rapidfuzz.distance import Levenshtein
 
 from deidentification_karnak.utils import numpy_to_python_type
 
@@ -21,11 +22,19 @@ def detect_sensitive_data(
 
     # Build lookup set from sensitive data
     lookup = build_sensitive_lookup(sensitive_data_list)
+    name_lookup = {
+        normalize_text(x)
+        for x in expand_patient_name(sensitive_data_list.get("PatientName", ""))
+    }
 
     sensitive_indices = set()
 
     for i, text in enumerate(ocr_texts):
-        if is_sensitive(text, lookup) or token_sensitive(text, lookup):
+        if (
+            is_sensitive(text, lookup)
+            or token_sensitive(text, lookup)
+            or name_token_sensitive(text, name_lookup)
+        ):
             sensitive_indices.add(i)
 
     # Second pass: for siblings in the same group as a match, retry with relaxed threshold
@@ -33,7 +42,7 @@ def detect_sensitive_data(
         sensitive_groups = {groups[i] for i in sensitive_indices}
         for i, g in enumerate(groups):
             if i not in sensitive_indices and g in sensitive_groups:
-                if is_sensitive(ocr_texts[i], lookup, threshold=60):
+                if is_sensitive(ocr_texts[i], lookup, threshold=63):
                     sensitive_indices.add(i)
 
     filtered_texts = []
@@ -103,6 +112,49 @@ def token_sensitive(text, lookup):
                 )
                 return True
     return False
+
+
+def name_token_sensitive(
+    ocr_text: str,
+    name_lookup: set[str],
+    min_length: int = 3,
+) -> bool:
+    """Match a single OCR token against single-word PatientName terms.
+
+    Tolerates small OCR errors via edit distance: 1 edit for length <=5,
+    2 edits for 6-9, 3 edits for >=10. Length difference between text and
+    term must not exceed the allowed edits, which prevents short substrings
+    of long names from matching.
+    """
+    text = normalize_text(ocr_text)
+    if len(text) < min_length:
+        return False
+    for term in name_lookup:
+        if " " in term or len(term) < min_length:
+            continue
+        max_edits = _max_name_edits(min(len(text), len(term)))
+        if abs(len(text) - len(term)) > max_edits:
+            continue
+        distance = Levenshtein.distance(text, term)
+        if distance <= max_edits:
+            logger.debug(
+                "Name token match: '%s' matches '%s' with distance %d",
+                text,
+                term,
+                distance,
+            )
+            return True
+    return False
+
+
+def _max_name_edits(length: int) -> int:
+    if length <= 3:
+        return 0
+    if length <= 5:
+        return 1
+    if length <= 9:
+        return 2
+    return 3
 
 
 def normalize_text_list(text_list: list[str]) -> list[str]:
