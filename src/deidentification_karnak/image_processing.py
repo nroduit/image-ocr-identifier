@@ -251,6 +251,13 @@ def _is_dot_delimiter(text: str, dot_idx: int) -> bool:
     if not text[dot_idx - 1].isalnum() or not text[dot_idx + 1].isalnum():
         return False
 
+    # Acronym pattern: a single letter immediately before the dot, followed by
+    # a letter (e.g. "H.U.G") -> preserve so initials stay joined as one token.
+    if text[dot_idx - 1].isalpha() and text[dot_idx + 1].isalpha():
+        prev = dot_idx - 2
+        if prev < 0 or text[prev] in (" ", "\t", ",", ".", "/"):
+            return False
+
     # Count consecutive digits immediately before the dot
     j = dot_idx - 1
     while j >= 0 and text[j].isdigit():
