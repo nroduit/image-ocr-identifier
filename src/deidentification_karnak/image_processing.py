@@ -124,17 +124,22 @@ def _split_single_block(
     padding = max(3, int(pixel_per_char * 0.9))
 
     results = []
-    prev_end_idx = None
+    prev_end_px = None
     for part, start_idx, end_idx in parts_with_positions:
-        visual_start_idx = prev_end_idx if prev_end_idx is not None else start_idx
-        sub_x_min = max(
-            x_min, int(x_min + _effective_pos(text, visual_start_idx) * pixel_per_char)
-        )
-        sub_x_max = min(
-            x_max, int(x_min + _effective_pos(text, end_idx) * pixel_per_char) + padding
-        )
+        start_px = x_min + _effective_pos(text, start_idx) * pixel_per_char
+        end_px = x_min + _effective_pos(text, end_idx) * pixel_per_char
+        # Pad the left edge by `padding`, but never past the previous token's
+        # padded right edge. Anchoring on the previous token's end (the old
+        # behaviour) overshot left for multi-character delimiters (e.g. " / "),
+        # extending the box into the previous token.
+        left_pad = padding
+        if prev_end_px is not None:
+            gap = start_px - (prev_end_px + padding)
+            left_pad = max(0.0, min(padding, gap))
+        sub_x_min = max(x_min, int(start_px - left_pad))
+        sub_x_max = min(x_max, int(end_px) + padding)
         results.append((part, [sub_x_min, y_min, sub_x_max, y_max]))
-        prev_end_idx = end_idx + 1
+        prev_end_px = end_px
 
     return results
 
