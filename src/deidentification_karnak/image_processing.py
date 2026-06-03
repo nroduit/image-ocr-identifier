@@ -194,8 +194,9 @@ def _find_parts(text: str) -> list[tuple[str, int, int]]:
                 # Preserve slash if it separates numeric segments (date-like)
                 if _is_date_slash(text, i):
                     i += 1
-                    # Skip any spaces between the slash and the next digit
-                    while i < n and text[i] in (" ", "\t"):
+                    # Skip spaces and stray repeated slashes (OCR artifact,
+                    # e.g. "09/ /09") between the slash and the next digit
+                    while i < n and text[i] in (" ", "\t", "/"):
                         i += 1
                     continue
                 else:
@@ -235,9 +236,10 @@ def _is_date_slash(text: str, slash_idx: int) -> bool:
         if text[k].isalpha():
             return False
         k -= 1
-    # Next non-space character after slash must be a digit
+    # Next significant character after slash must be a digit. Skip spaces and
+    # stray repeated slashes (OCR artifact, e.g. "09/ /09/1947").
     j = slash_idx + 1
-    while j < len(text) and text[j] in (" ", "\t"):
+    while j < len(text) and text[j] in (" ", "\t", "/"):
         j += 1
     return j < len(text) and text[j].isdigit()
 
