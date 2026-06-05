@@ -45,6 +45,20 @@ def detect_sensitive_data(
                 if is_sensitive(ocr_texts[i], lookup, threshold=63):
                     sensitive_indices.add(i)
 
+    # Third pass: reconstruct terms that PaddleOCR split across several adjacent
+    # boxes on the same line (e.g. "HUG - Gynécologie" as "HUG -"/"Gynécologie",
+    # or a birth date "1928 / 03 / 03" as "1928"/"03"/"03"). Eligible terms are
+    # those that can appear split: multi-word terms (spaces) and numeric
+    # multi-segment terms (dates, IDs) whose separators are dropped by
+    # normalization so they have no space but still span several boxes.
+    splittable_terms = {
+        term
+        for term in lookup
+        if " " in term or (len(term) >= 6 and any(c.isdigit() for c in term))
+    }
+    if splittable_terms:
+        sensitive_indices |= detect_split_terms(ocr_texts, ocr_boxes, splittable_terms)
+
     filtered_texts = []
     filtered_boxes = []
     for i in sorted(sensitive_indices):
@@ -58,6 +72,112 @@ def detect_sensitive_data(
         "texts": filtered_texts,
         "boxes": filtered_boxes,
     }
+
+
+def detect_split_terms(
+    texts: list[str],
+    boxes: list,
+    terms: set[str],
+    max_window: int = 5,
+) -> set[int]:
+    """Find boxes whose text, when concatenated with adjacent same-line boxes,
+    reconstructs a multi-word sensitive term.
+
+    Returns the indices of every box that contributes to such a reconstruction.
+    Matching is anchored on the whole run being (nearly) equal to the term, so
+    unrelated neighbours do not get flagged.
+    """
+    matched: set[int] = set()
+    normalized = [normalize_text(t) for t in texts]
+
+    valid = [
+        i
+        for i, box in enumerate(boxes)
+        if len(box) == 4 and not isinstance(box[0], (list, tuple))
+    ]
+
+    for start in valid:
+        if not normalized[start]:
+            continue
+        run = [start]
+        combined = normalized[start]
+        current = start
+        # Grow the run by following the nearest right-hand neighbour that sits
+        # on the same text line (vertical overlap), then re-test against terms.
+        # Single boxes are not "splits" (handled by the earlier passes), so a
+        # run must contain at least two boxes before it can match.
+        for _ in range(max_window - 1):
+            nxt = _next_box_on_line(current, valid, boxes)
+            if nxt is None:
+                break
+            run.append(nxt)
+            if normalized[nxt]:
+                combined = f"{combined} {normalized[nxt]}".strip()
+            current = nxt
+            if len(combined) >= 4 and any(
+                _run_matches_term(combined, term) for term in terms
+            ):
+                matched.update(run)
+                break
+    return matched
+
+
+def _run_matches_term(combined: str, term: str) -> bool:
+    # The concatenated boxes must approximate the *entire* term, so a short
+    # fragment (e.g. "gyn") cannot match a long term via substring coincidence.
+    if len(combined) < len(term) * 0.6:
+        return False
+    # Whole-run similarity: the concatenated boxes must approximate the entire
+    # term, which prevents random adjacent boxes from matching.
+    if fuzz.ratio(combined, term) >= 85:
+        return True
+    # Numeric multi-segment terms (e.g. dates "19280303") lose their separators
+    # in normalization, so the joined run "1928 03 03" only matches once the
+    # word-joining spaces are removed too.
+    stripped = combined.replace(" ", "")
+    if stripped != combined and fuzz.ratio(stripped, term) >= 85:
+        return True
+    # Allow small OCR noise (extra chars) while bounding the run length so a
+    # short term cannot match inside a long unrelated concatenation.
+    if len(combined) <= len(term) * 1.3 and fuzz.partial_ratio(combined, term) >= 90:
+        return True
+    return False
+
+
+def _next_box_on_line(
+    current: int,
+    candidates: list[int],
+    boxes: list,
+    min_vertical_overlap: float = 0.4,
+    max_gap_ratio: float = 2.0,
+) -> int | None:
+    """Return the nearest box to the right of ``current`` on the same text line.
+
+    Same line is decided by vertical span overlap (robust to small angle/offset
+    shifts between boxes), not by a global line anchor. The horizontal gap must
+    not exceed ``max_gap_ratio`` times the current box height.
+    """
+    cx_min, cy_min, cx_max, cy_max = (float(boxes[current][i]) for i in range(4))
+    c_height = cy_max - cy_min
+    best = None
+    best_x = None
+    for j in candidates:
+        if j == current:
+            continue
+        jx_min, jy_min, _, jy_max = (float(boxes[j][i]) for i in range(4))
+        if jx_min <= cx_min:
+            continue
+        overlap = min(cy_max, jy_max) - max(cy_min, jy_min)
+        min_height = min(c_height, jy_max - jy_min)
+        if min_height <= 0 or overlap / min_height < min_vertical_overlap:
+            continue
+        gap = jx_min - cx_max
+        if gap > max_gap_ratio * c_height:
+            continue
+        if best_x is None or jx_min < best_x:
+            best = j
+            best_x = jx_min
+    return best
 
 
 def is_sensitive(
