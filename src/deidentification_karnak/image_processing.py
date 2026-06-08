@@ -40,16 +40,15 @@ _rec_model_dir = MODEL_TEXT_RECOGNITION_V5
 
 # Initialize OCR
 _ocr = PaddleOCR(
-    use_angle_cls=False,
-    lang="latin",
+    use_textline_orientation=False,
     text_detection_model_name=_det_model_name,
     text_detection_model_dir=_det_model_dir,
     text_recognition_model_name=_rec_model_name,
     text_recognition_model_dir=_rec_model_dir,
     use_doc_orientation_classify=False,
     use_doc_unwarping=False,
-    det_db_thresh=0.2,
-    det_db_box_thresh=0.4,
+    text_det_thresh=0.2,
+    text_det_box_thresh=0.4,
 )
 
 
