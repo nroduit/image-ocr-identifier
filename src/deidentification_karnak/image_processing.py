@@ -11,32 +11,22 @@ _BASE_DATA_PATH = Path(
     os.environ.get("MODEL_DATA_PATH", str(Path(__file__).parent.parent.parent / "data"))
 )
 
-MODEL_TEXT_DETECTION_V3 = str(
-    _BASE_DATA_PATH / "models" / "detection" / "en_PP-OCRv3_det"
-)
-MODEL_TEXT_RECOGNITION_V3 = str(
-    _BASE_DATA_PATH / "models" / "recognition" / "latin_PP-OCRv3_mobile_rec"
-)
-
-MODEL_TEXT_DETECTION_MOBILE_V5 = str(
-    _BASE_DATA_PATH / "models" / "detection" / "PP-OCRv5_mobile_det"
-)
-MODEL_TEXT_DETECTION_SERVER_V5 = str(
-    _BASE_DATA_PATH / "models" / "detection" / "PP-OCRv5_server_det"
-)
-MODEL_TEXT_RECOGNITION_V5 = str(
-    _BASE_DATA_PATH / "models" / "recognition" / "latin_PP-OCRv5_mobile_rec"
-)
-
 SPACE_WEIGHT = 0.2
 
-# _det_model_name = "PP-OCRv3_mobile_det"
-# _rec_model_name = "latin_PP-OCRv3_mobile_rec"
-_det_model_name = "PP-OCRv5_mobile_det"
-_rec_model_name = "latin_PP-OCRv5_mobile_rec"
+_det_model_name = os.environ.get("OCR_DET_MODEL", "PP-OCRv5_mobile_det")
+_rec_model_name = os.environ.get("OCR_REC_MODEL", "latin_PP-OCRv5_mobile_rec")
 
-_det_model_dir = MODEL_TEXT_DETECTION_MOBILE_V5
-_rec_model_dir = MODEL_TEXT_RECOGNITION_V5
+_det_model_dir = os.environ.get(
+    "OCR_DET_MODEL_DIR", _BASE_DATA_PATH / "models" / "detection" / _det_model_name
+)
+_rec_model_dir = os.environ.get(
+    "OCR_REC_MODEL_DIR", _BASE_DATA_PATH / "models" / "recognition" / _rec_model_name
+)
+
+# It should fail during start if the model is absent
+for _name, _dir in (("detection", _det_model_dir), ("recognition", _rec_model_dir)):
+    if not Path(_dir).is_dir():
+        raise RuntimeError(f"OCR {_name} model directory not found: {_dir}")
 
 # Initialize OCR
 _ocr = PaddleOCR(
