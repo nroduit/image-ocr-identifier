@@ -17,10 +17,11 @@ _det_model_name = os.environ.get("OCR_DET_MODEL", "PP-OCRv5_mobile_det")
 _rec_model_name = os.environ.get("OCR_REC_MODEL", "latin_PP-OCRv5_mobile_rec")
 
 _det_model_dir = os.environ.get(
-    "OCR_DET_MODEL_DIR", _BASE_DATA_PATH / "models" / "detection" / _det_model_name
+    "OCR_DET_MODEL_DIR", str(_BASE_DATA_PATH / "models" / "detection" / _det_model_name)
 )
 _rec_model_dir = os.environ.get(
-    "OCR_REC_MODEL_DIR", _BASE_DATA_PATH / "models" / "recognition" / _rec_model_name
+    "OCR_REC_MODEL_DIR",
+    str(_BASE_DATA_PATH / "models" / "recognition" / _rec_model_name),
 )
 
 # It should fail during start if the model is absent
