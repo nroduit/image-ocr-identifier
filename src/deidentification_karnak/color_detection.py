@@ -6,7 +6,7 @@ text pixels using statistical distance from the median color.
 
 import numpy as np
 
-from deidentification_karnak.utils import decode_image_bytes
+from deidentification_karnak.dicom_decode import decode_image_bytes
 
 QUANTIZATION_STEP = 1
 TEXT_DISTANCE_THRESHOLD = 30

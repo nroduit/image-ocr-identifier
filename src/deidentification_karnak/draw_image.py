@@ -2,7 +2,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from deidentification_karnak.utils import decode_image_bytes
+from deidentification_karnak.dicom_decode import decode_image_bytes
 
 
 def _polygon_to_bbox(polygon: list | np.ndarray) -> tuple[int, int, int, int]:

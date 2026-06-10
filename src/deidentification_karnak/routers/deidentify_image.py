@@ -5,6 +5,7 @@ import re
 from fastapi import APIRouter, Form, UploadFile, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
 from deidentification_karnak.color_detection import get_colors
+from deidentification_karnak.dicom_decode import decode_image_bytes
 from deidentification_karnak.debug import (
     create_debug_session,
     save_debug_image,
@@ -24,7 +25,6 @@ from deidentification_karnak.sensitive_data_detection import detect_sensitive_da
 from deidentification_karnak.utils import (
     bgr_to_hex,
     convert_upscaled_boxes,
-    decode_image_bytes,
     expand_boxes,
     format_boxes,
 )
