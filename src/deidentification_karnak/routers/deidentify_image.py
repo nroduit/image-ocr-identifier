@@ -4,30 +4,9 @@ import re
 
 from fastapi import APIRouter, Form, UploadFile, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
-from deidentification_karnak.color_detection import get_colors
 from deidentification_karnak.dicom_decode import decode_image_bytes
-from deidentification_karnak.debug import (
-    create_debug_session,
-    save_debug_image,
-    save_debug_preprocessed,
-    save_debug_split_boxes,
-)
-from deidentification_karnak.image_processing import (
-    process_image_with_ocr,
-    split_ocr_blocks,
-)
-from deidentification_karnak.models.response import (
-    DeidentificationResponse,
-    MaskGroup,
-)
-from deidentification_karnak.preprocessing import preprocess_image_for_ocr
-from deidentification_karnak.sensitive_data_detection import detect_sensitive_data
-from deidentification_karnak.utils import (
-    bgr_to_hex,
-    convert_upscaled_boxes,
-    expand_boxes,
-    format_boxes,
-)
+from deidentification_karnak.models.response import DeidentificationResponse
+from deidentification_karnak.pipeline import run_deidentification
 
 SUPPORTED_CONTENT_TYPES = {
     "image/jpeg",
@@ -138,11 +117,10 @@ async def deidentify_image(
             status_code=400, detail="sensitive_data_list must be a JSON object."
         )
 
-    no_sensitive = DeidentificationResponse(
-        message="No sensitive data list provided", sop_instance_uid=sop_instance_uid
-    )
-
     if not sensitive_data:
+        no_sensitive = DeidentificationResponse(
+            message="No sensitive data list provided", sop_instance_uid=sop_instance_uid
+        )
         return _versioned_response(no_sensitive, version)
 
     image_bytes = await image.read()
@@ -178,52 +156,11 @@ async def deidentify_image(
             detail="Failed to decode image. Provide rows, columns, bits_allocated, samples_per_pixel, transfer_syntax_uid, and photometric_interpretation.",
         )
 
-    # Preprocessing
-    preprocessed_image, scale_factor = preprocess_image_for_ocr(decoded_image)
-    debug_session = create_debug_session(image.filename or "image")
-    save_debug_preprocessed(preprocessed_image, debug_session)
-
-    # OCR and sensitive data detection
-    ocr_result = await asyncio.to_thread(
-        process_image_with_ocr,
-        preprocessed_image,
-        debug_session=debug_session,
-    )
-
-    if not ocr_result["texts"]:
-        return _versioned_response(no_sensitive, version)
-
-    ocr_result = split_ocr_blocks(ocr_result)
-    save_debug_split_boxes(preprocessed_image, ocr_result, debug_session)
-
-    ocr_result["boxes"] = convert_upscaled_boxes(ocr_result["boxes"], scale_factor)
-
-    masks = await asyncio.to_thread(detect_sensitive_data, ocr_result, sensitive_data)
-
-    # Expand boxes a little bit to cover text border pixels
-    masks["boxes"] = expand_boxes(masks["boxes"], margin=2)
-
-    color_to_boxes = await asyncio.to_thread(get_colors, decoded_image, masks["boxes"])
-
-    save_debug_image(decoded_image, color_to_boxes, debug_session)
-
-    mask_groups = [
-        MaskGroup(
-            color=bgr_to_hex(color),
-            rectangles=format_boxes(boxes),
-        )
-        for color, boxes in color_to_boxes.items()
-    ]
-
-    total = sum(len(boxes) for boxes in color_to_boxes.values())
-
-    result = DeidentificationResponse(
-        masks=mask_groups if mask_groups else None,
-        message=(
-            f"{total} sensitive data detected"
-            if mask_groups
-            else "No sensitive data detected"
-        ),
-        sop_instance_uid=sop_instance_uid,
+    result = await asyncio.to_thread(
+        run_deidentification,
+        decoded_image,
+        sensitive_data,
+        sop_instance_uid,
+        image.filename or "image",
     )
     return _versioned_response(result, version)
