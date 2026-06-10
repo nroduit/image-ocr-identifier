@@ -1,7 +1,7 @@
 from datetime import datetime
 import logging
 import re
-from typing import Dict, Union
+from typing import Dict
 import unicodedata
 import numpy as np
 from rapidfuzz import fuzz
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # Compare OCR results with sensitive_data_list and return only the data that needs to be masked
 def detect_sensitive_data(
-    ocr_result: Dict[str, Union[list, np.ndarray]], sensitive_data_list: Dict[str, str]
+    ocr_result: Dict[str, list | np.ndarray], sensitive_data_list: Dict[str, str]
 ) -> Dict[str, list]:
     ocr_texts = ocr_result["texts"]
     ocr_boxes = ocr_result["boxes"]
