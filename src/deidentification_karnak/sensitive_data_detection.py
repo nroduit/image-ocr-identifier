@@ -57,7 +57,9 @@ def detect_sensitive_data(
         if " " in term or (len(term) >= 6 and any(c.isdigit() for c in term))
     }
     if splittable_terms:
-        sensitive_indices |= detect_split_terms(ocr_texts, ocr_boxes, splittable_terms)
+        sensitive_indices |= detect_split_terms(
+            ocr_texts, ocr_boxes, splittable_terms, member_terms=lookup | name_lookup
+        )
 
     filtered_texts = []
     filtered_boxes = []
@@ -78,6 +80,7 @@ def detect_split_terms(
     texts: list[str],
     boxes: list,
     terms: set[str],
+    member_terms: set[str] | None = None,
     max_window: int = 5,
 ) -> set[int]:
     """Find boxes whose text, when concatenated with adjacent same-line boxes,
@@ -86,7 +89,15 @@ def detect_split_terms(
     Returns the indices of every box that contributes to such a reconstruction.
     Matching is anchored on the whole run being (nearly) equal to the term, so
     unrelated neighbours do not get flagged.
+
+    ``member_terms`` is the full set of sensitive terms used to decide whether an
+    individual box in a matched run is a genuine fragment. A box is kept only if
+    its own text resembles some sensitive term: this drops stray letters or a
+    manufacturer logo dragged onto the line, while still keeping a fragment that
+    belongs to a *different* term than the one the run matched.
     """
+    if member_terms is None:
+        member_terms = terms
     matched: set[int] = set()
     normalized = [normalize_text(t) for t in texts]
 
@@ -117,9 +128,32 @@ def detect_split_terms(
             if len(combined) >= 4 and any(
                 _run_matches_term(combined, term) for term in terms
             ):
-                matched.update(run)
+                # Flag only boxes whose own text is a genuine fragment of some
+                # sensitive term. Date/ID/name fragments resemble a term and are
+                # kept (including fragments of a different name part than the one
+                # the run matched); stray letters or a manufacturer logo dragged
+                # onto the line resemble nothing and are dropped.
+                matched.update(
+                    idx
+                    for idx in run
+                    if normalized[idx]
+                    and _box_in_any_term(normalized[idx], member_terms)
+                )
                 break
     return matched
+
+
+def _box_in_any_term(box_text: str, terms: set[str]) -> bool:
+    return any(_box_in_term(box_text, term) for term in terms)
+
+
+def _box_in_term(box_text: str, term: str) -> bool:
+    if fuzz.partial_ratio(box_text, term) >= 85:
+        return True
+    # Mirror the run-level handling: numeric segments lose their separators in
+    # normalization, so a box like "03" still matches a term like "19280303".
+    stripped = box_text.replace(" ", "")
+    return stripped != box_text and fuzz.partial_ratio(stripped, term) >= 85
 
 
 def _run_matches_term(combined: str, term: str) -> bool:
