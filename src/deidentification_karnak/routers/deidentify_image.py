@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import re
 
 from fastapi import APIRouter, Form, UploadFile, HTTPException, Request, Depends
@@ -7,6 +8,8 @@ from fastapi.responses import JSONResponse
 from deidentification_karnak.dicom_decode import decode_image_bytes
 from deidentification_karnak.models.response import DeidentificationResponse
 from deidentification_karnak.pipeline import run_deidentification
+
+logger = logging.getLogger(__name__)
 
 SUPPORTED_CONTENT_TYPES = {
     "image/jpeg",
@@ -103,16 +106,31 @@ async def deidentify_image(
     version: int = Depends(version_dep),
 ):
     if image.content_type not in SUPPORTED_CONTENT_TYPES:
+        logger.warning(
+            "Rejected request: unsupported content type %r (filename=%r)",
+            image.content_type,
+            image.filename,
+        )
         raise HTTPException(status_code=400, detail="Unsupported file type.")
 
     try:
         sensitive_data: dict[str, str] = json.loads(sensitive_data_list)
     except (json.JSONDecodeError, TypeError) as exc:
+        logger.warning(
+            "Rejected request: invalid JSON for sensitive_data_list (filename=%r): %s",
+            image.filename,
+            exc,
+        )
         raise HTTPException(
             status_code=400, detail="Invalid JSON format for the sensitive data."
         ) from exc
 
     if not isinstance(sensitive_data, dict):
+        logger.warning(
+            "Rejected request: sensitive_data_list is not a JSON object (filename=%r, type=%s)",
+            image.filename,
+            type(sensitive_data).__name__,
+        )
         raise HTTPException(
             status_code=400, detail="sensitive_data_list must be a JSON object."
         )
@@ -130,6 +148,11 @@ async def deidentify_image(
         try:
             parsed_palette = json.loads(palette_color_lut)
         except (json.JSONDecodeError, TypeError) as exc:
+            logger.warning(
+                "Rejected request: invalid JSON for palette_color_lut (filename=%r): %s",
+                image.filename,
+                exc,
+            )
             raise HTTPException(
                 status_code=400, detail="Invalid JSON format for palette_color_lut."
             ) from exc
@@ -151,6 +174,19 @@ async def deidentify_image(
         photometric_interpretation=photometric_interpretation,
     )
     if decoded_image is None:
+        logger.warning(
+            "Rejected request: failed to decode image (filename=%r, content_type=%r, "
+            "transfer_syntax_uid=%r, photometric_interpretation=%r, rows=%r, columns=%r, "
+            "bits_allocated=%r, samples_per_pixel=%r)",
+            image.filename,
+            image.content_type,
+            transfer_syntax_uid,
+            photometric_interpretation,
+            rows,
+            columns,
+            bits_allocated,
+            samples_per_pixel,
+        )
         raise HTTPException(
             status_code=400,
             detail="Failed to decode image. Provide rows, columns, bits_allocated, samples_per_pixel, transfer_syntax_uid, and photometric_interpretation.",

@@ -1,7 +1,8 @@
 import logging
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 import uvicorn
 
 from deidentification_karnak.routers.deidentify_image import router
@@ -12,12 +13,22 @@ logging.basicConfig(
     force=True,
 )
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI(
     title="Deidentification API",
     description="API for deidentifying images using OCR",
     version="0.0.1",
 )
 app.include_router(router)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception(
+        "Unhandled error processing %s %s", request.method, request.url.path
+    )
+    return JSONResponse(status_code=500, content={"detail": "Internal server error."})
 
 
 @app.get("/health")
