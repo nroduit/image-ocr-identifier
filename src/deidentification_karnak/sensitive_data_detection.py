@@ -518,6 +518,7 @@ def expand_age(age: str, birth_date: str = "", study_date: str = "") -> set[str]
     }
 
     if unit == "y":
+        variants.add(f"{num}ans")
         months = _age_months_remainder(birth_date, study_date)
         if months is not None:
             variants.add(f"{num}y{months}m")
