@@ -353,7 +353,11 @@ def build_sensitive_lookup(data: dict[str, str]) -> set[str]:
     if "StudyDate" in data:
         lookup |= expand_date(data["StudyDate"])
     if "PatientAge" in data:
-        lookup |= expand_age(data["PatientAge"])
+        lookup |= expand_age(
+            data["PatientAge"],
+            data.get("PatientBirthDate", ""),
+            data.get("StudyDate", ""),
+        )
 
     normalized = {normalize_text(x) for x in lookup}
     # Add space-stripped variants for matching OCR text that omits spaces
@@ -501,15 +505,33 @@ def expand_date(dicom_date: str) -> set[str]:
 
 
 # Patient Age
-def expand_age(age: str) -> set[str]:
+def expand_age(age: str, birth_date: str = "", study_date: str = "") -> set[str]:
     if age == "" or len(age) < 4:
         return set()
 
     num = int(age[:3])
     unit = age[3].lower()
 
-    return {
-        str(num),
+    variants = {
         f"{num}{unit}",
         f"{num:03}{unit}",
     }
+
+    if unit == "y":
+        months = _age_months_remainder(birth_date, study_date)
+        if months is not None:
+            variants.add(f"{num}y{months}m")
+            variants.add(f"{num}a{months}m")
+
+    return variants
+
+
+def _age_months_remainder(birth_date: str, study_date: str) -> int | None:
+    if not birth_date or not study_date:
+        return None
+    birth = datetime.strptime(birth_date, "%Y%m%d")
+    study = datetime.strptime(study_date, "%Y%m%d")
+    months = (study.year - birth.year) * 12 + (study.month - birth.month)
+    if study.day < birth.day:
+        months -= 1
+    return months % 12
