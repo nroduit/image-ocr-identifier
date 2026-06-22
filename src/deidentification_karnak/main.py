@@ -40,7 +40,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "deidentification_karnak.main:app",
         host="0.0.0.0",
-        port=8000,
+        port=int(os.environ.get("PORT", 8000)),
         h11_max_incomplete_event_size=50 * 1024 * 1024,
         workers=int(os.environ.get("WORKERS", os.cpu_count() or 1)),
     )
