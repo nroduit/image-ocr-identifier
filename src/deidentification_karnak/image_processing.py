@@ -40,6 +40,7 @@ _ocr = PaddleOCR(
     use_doc_unwarping=False,
     text_det_thresh=0.2,
     text_det_box_thresh=0.4,
+    enable_mkldnn=False,
 )
 
 
