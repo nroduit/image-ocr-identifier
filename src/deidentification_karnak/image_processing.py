@@ -29,7 +29,14 @@ for _name, _dir in (("detection", _det_model_dir), ("recognition", _rec_model_di
     if not Path(_dir).is_dir():
         raise RuntimeError(f"OCR {_name} model directory not found: {_dir}")
 
+# Device selection: "cpu", "gpu", "gpu:0", ... Unset means the PaddleOCR default
+# (CPU). Set OCR_DEVICE=gpu to run on an NVIDIA GPU
+_device = os.environ.get("OCR_DEVICE") or None
+
 # Initialize OCR
+# enable_mkldnn=False: the oneDNN backend crashes under Paddle 3.x's PIR executor
+# with PP-OCRv5 (NotImplementedError: ConvertPirAttribute2RuntimeAttribute) on
+# x86_64 Linux. It is unused on macOS arm64 and on GPU, so disabling it is safe.
 _ocr = PaddleOCR(
     use_textline_orientation=False,
     text_detection_model_name=_det_model_name,
@@ -41,6 +48,7 @@ _ocr = PaddleOCR(
     text_det_thresh=0.2,
     text_det_box_thresh=0.4,
     enable_mkldnn=False,
+    device=_device,
 )
 
 
