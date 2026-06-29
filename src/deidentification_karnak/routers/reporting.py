@@ -3,8 +3,8 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from deidentification_karnak.models.response import DeidentificationResponse
-from deidentification_karnak.pipeline import run_deidentification
+from deidentification_karnak.models.response import ReportingResponse
+from deidentification_karnak.pipeline import run_reporting
 from deidentification_karnak.routers.image_request import (
     ImageRequest,
     decode_image,
@@ -18,13 +18,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/deidentify-image", response_model=DeidentificationResponse)
-async def deidentify_image(
+@router.post("/reporting", response_model=ReportingResponse)
+async def reporting(
     request: ImageRequest = Depends(parse_image_request),
     version: int = Depends(version_dep),
 ):
     if not request.sensitive_data:
-        no_sensitive = DeidentificationResponse(
+        no_sensitive = ReportingResponse(
             message="No sensitive data list provided",
             sop_instance_uid=request.sop_instance_uid,
         )
@@ -43,7 +43,7 @@ async def deidentify_image(
         )
 
     result = await asyncio.to_thread(
-        run_deidentification,
+        run_reporting,
         decoded_image,
         request.sensitive_data,
         request.sop_instance_uid,

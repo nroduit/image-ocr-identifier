@@ -5,7 +5,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import uvicorn
 
-from deidentification_karnak.routers.deidentify_image import router
+from deidentification_karnak.routers.deidentify_image import router as deidentify_router
+from deidentification_karnak.routers.reporting import router as reporting_router
 
 logging.basicConfig(
     level=getattr(logging, os.environ.get("LOG_LEVEL", "INFO").upper(), logging.INFO),
@@ -20,7 +21,8 @@ app = FastAPI(
     description="API for deidentifying images using OCR",
     version="0.0.1",
 )
-app.include_router(router)
+app.include_router(deidentify_router)
+app.include_router(reporting_router)
 
 
 @app.exception_handler(Exception)

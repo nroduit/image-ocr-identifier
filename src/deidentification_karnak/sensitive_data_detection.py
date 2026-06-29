@@ -27,6 +27,62 @@ def detect_sensitive_data(
         for x in expand_patient_name(sensitive_data_list.get("PatientName", ""))
     }
 
+    sensitive_indices = _detect_sensitive_indices(
+        ocr_texts, ocr_boxes, groups, lookup, name_lookup
+    )
+
+    filtered_texts = []
+    filtered_boxes = []
+    for i in sorted(sensitive_indices):
+        filtered_texts.append(ocr_texts[i])
+        filtered_boxes.append(numpy_to_python_type(ocr_boxes[i]))
+        logger.debug(
+            "Sensitive data detected: '%s' at box %s", ocr_texts[i], ocr_boxes[i]
+        )
+
+    return {
+        "texts": filtered_texts,
+        "boxes": filtered_boxes,
+    }
+
+
+# Return the DICOM tag names whose values are detected in the OCR text, without
+# computing masks. Each key is tested independently against only its own value
+# variants, so the result reports exactly which tags appear in the image.
+def detect_sensitive_keys(
+    ocr_result: Dict[str, list | np.ndarray], sensitive_data_list: Dict[str, str]
+) -> list[str]:
+    ocr_texts = ocr_result["texts"]
+    ocr_boxes = ocr_result["boxes"]
+    groups = ocr_result.get("groups")
+
+    lookup_by_key = build_sensitive_lookup_by_key(sensitive_data_list)
+    name_lookup = {
+        normalize_text(x)
+        for x in expand_patient_name(sensitive_data_list.get("PatientName", ""))
+    }
+
+    detected = []
+    # Iterate in the caller's key order so the report mirrors the input.
+    for key in sensitive_data_list:
+        lookup = lookup_by_key.get(key)
+        if not lookup:
+            continue
+        key_name_lookup = name_lookup if key == "PatientName" else set()
+        if _detect_sensitive_indices(
+            ocr_texts, ocr_boxes, groups, lookup, key_name_lookup
+        ):
+            detected.append(key)
+    return detected
+
+
+def _detect_sensitive_indices(
+    ocr_texts: list[str],
+    ocr_boxes: list,
+    groups: list | None,
+    lookup: set[str],
+    name_lookup: set[str],
+) -> set[int]:
     sensitive_indices = set()
 
     for i, text in enumerate(ocr_texts):
@@ -61,19 +117,7 @@ def detect_sensitive_data(
             ocr_texts, ocr_boxes, splittable_terms, member_terms=lookup | name_lookup
         )
 
-    filtered_texts = []
-    filtered_boxes = []
-    for i in sorted(sensitive_indices):
-        filtered_texts.append(ocr_texts[i])
-        filtered_boxes.append(numpy_to_python_type(ocr_boxes[i]))
-        logger.debug(
-            "Sensitive data detected: '%s' at box %s", ocr_texts[i], ocr_boxes[i]
-        )
-
-    return {
-        "texts": filtered_texts,
-        "boxes": filtered_boxes,
-    }
+    return sensitive_indices
 
 
 def detect_split_terms(
@@ -363,6 +407,45 @@ def build_sensitive_lookup(data: dict[str, str]) -> set[str]:
     # Add space-stripped variants for matching OCR text that omits spaces
     normalized |= {t.replace(" ", "") for t in normalized if " " in t}
     return normalized
+
+
+def build_sensitive_lookup_by_key(data: dict[str, str]) -> dict[str, set[str]]:
+    """Like ``build_sensitive_lookup`` but keep each tag's variants separate.
+
+    Returns a mapping of DICOM tag name to its normalized lookup set. Empty
+    values and keys that expand to nothing are omitted so callers can treat a
+    present key as one that can actually be matched.
+    """
+    variants_by_key: dict[str, set[str]] = {}
+
+    for key, value in data.items():
+        if key in SPECIAL_KEYS or value == "":
+            continue
+        variants_by_key[key] = {value}
+
+    if data.get("PatientName"):
+        variants_by_key["PatientName"] = expand_patient_name(data["PatientName"])
+    if data.get("PatientSex"):
+        variants_by_key["PatientSex"] = expand_sex(data["PatientSex"])
+    if data.get("PatientBirthDate"):
+        variants_by_key["PatientBirthDate"] = expand_date(data["PatientBirthDate"])
+    if data.get("StudyDate"):
+        variants_by_key["StudyDate"] = expand_date(data["StudyDate"])
+    if data.get("PatientAge"):
+        variants_by_key["PatientAge"] = expand_age(
+            data["PatientAge"],
+            data.get("PatientBirthDate", ""),
+            data.get("StudyDate", ""),
+        )
+
+    lookup_by_key: dict[str, set[str]] = {}
+    for key, variants in variants_by_key.items():
+        normalized = {normalize_text(x) for x in variants}
+        normalized |= {t.replace(" ", "") for t in normalized if " " in t}
+        normalized.discard("")
+        if normalized:
+            lookup_by_key[key] = normalized
+    return lookup_by_key
 
 
 # Patient Name

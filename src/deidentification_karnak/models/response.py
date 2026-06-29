@@ -15,3 +15,12 @@ class DeidentificationResponse(BaseModel):
     masks: list[MaskGroup] | None = None
     message: str
     sop_instance_uid: str | None = None
+
+
+class ReportingResponse(BaseModel):
+    detected_tags: list[str] = Field(
+        default_factory=list,
+        description="DICOM tag names whose values were detected in the image text",
+    )
+    message: str
+    sop_instance_uid: str | None = None

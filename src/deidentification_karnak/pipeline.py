@@ -12,14 +12,45 @@ from deidentification_karnak.image_processing import (
     split_ocr_blocks,
 )
 from deidentification_karnak.preprocessing import preprocess_image_for_ocr
-from deidentification_karnak.models.response import DeidentificationResponse, MaskGroup
-from deidentification_karnak.sensitive_data_detection import detect_sensitive_data
+from deidentification_karnak.models.response import (
+    DeidentificationResponse,
+    MaskGroup,
+    ReportingResponse,
+)
+from deidentification_karnak.sensitive_data_detection import (
+    detect_sensitive_data,
+    detect_sensitive_keys,
+)
 from deidentification_karnak.utils import (
     bgr_to_hex,
     convert_upscaled_boxes,
     expand_boxes,
     format_boxes,
 )
+
+
+def _run_ocr_pipeline(decoded_image: np.ndarray, image_name: str):
+    """Preprocess, OCR, and split the image into line boxes.
+
+    Returns ``(ocr_result, debug_session)`` with boxes rescaled back to the
+    original image, or ``(None, debug_session)`` when OCR finds no text.
+    """
+    preprocessed_image, scale_factor = preprocess_image_for_ocr(decoded_image)
+    debug_session = create_debug_session(image_name)
+    save_debug_preprocessed(preprocessed_image, debug_session)
+
+    ocr_result = process_image_with_ocr(
+        preprocessed_image,
+        debug_session=debug_session,
+    )
+
+    if not ocr_result["texts"]:
+        return None, debug_session
+
+    ocr_result = split_ocr_blocks(ocr_result)
+    save_debug_split_boxes(preprocessed_image, ocr_result, debug_session)
+    ocr_result["boxes"] = convert_upscaled_boxes(ocr_result["boxes"], scale_factor)
+    return ocr_result, debug_session
 
 
 def run_deidentification(
@@ -29,25 +60,11 @@ def run_deidentification(
     image_name: str,
 ) -> DeidentificationResponse:
 
-    # Preprocessing
-    preprocessed_image, scale_factor = preprocess_image_for_ocr(decoded_image)
-    debug_session = create_debug_session(image_name)
-    save_debug_preprocessed(preprocessed_image, debug_session)
-
-    # OCR and sensitive data detection
-    ocr_result = process_image_with_ocr(
-        preprocessed_image,
-        debug_session=debug_session,
-    )
-
-    if not ocr_result["texts"]:
+    ocr_result, debug_session = _run_ocr_pipeline(decoded_image, image_name)
+    if ocr_result is None:
         return DeidentificationResponse(
             message="No sensitive data detected", sop_instance_uid=sop_instance_uid
         )
-
-    ocr_result = split_ocr_blocks(ocr_result)
-    save_debug_split_boxes(preprocessed_image, ocr_result, debug_session)
-    ocr_result["boxes"] = convert_upscaled_boxes(ocr_result["boxes"], scale_factor)
 
     masks = detect_sensitive_data(ocr_result, sensitive_data)
     # Expand boxes a little bit to cover text border pixels
@@ -70,6 +87,32 @@ def run_deidentification(
         message=(
             f"{total} sensitive data detected"
             if mask_groups
+            else "No sensitive data detected"
+        ),
+        sop_instance_uid=sop_instance_uid,
+    )
+
+
+def run_reporting(
+    decoded_image: np.ndarray,
+    sensitive_data: dict[str, str],
+    sop_instance_uid: str | None,
+    image_name: str,
+) -> ReportingResponse:
+
+    ocr_result, _ = _run_ocr_pipeline(decoded_image, image_name)
+    if ocr_result is None:
+        return ReportingResponse(
+            message="No sensitive data detected", sop_instance_uid=sop_instance_uid
+        )
+
+    detected_tags = detect_sensitive_keys(ocr_result, sensitive_data)
+
+    return ReportingResponse(
+        detected_tags=detected_tags,
+        message=(
+            f"{len(detected_tags)} sensitive tags detected"
+            if detected_tags
             else "No sensitive data detected"
         ),
         sop_instance_uid=sop_instance_uid,
