@@ -197,7 +197,14 @@ def _box_in_term(box_text: str, term: str) -> bool:
     # Mirror the run-level handling: numeric segments lose their separators in
     # normalization, so a box like "03" still matches a term like "19280303".
     stripped = box_text.replace(" ", "")
-    return stripped != box_text and fuzz.partial_ratio(stripped, term) >= 85
+    if stripped != box_text and fuzz.partial_ratio(stripped, term) >= 85:
+        return True
+    # A box like "date naiss 1928" contains a 4+ digit year that is a substring
+    # of a date term like "19280303". Accept it when contextually part of a run.
+    for token in box_text.split():
+        if len(token) >= 4 and token.isdigit() and token in term:
+            return True
+    return False
 
 
 def _run_matches_term(combined: str, term: str) -> bool:
@@ -219,6 +226,32 @@ def _run_matches_term(combined: str, term: str) -> bool:
     # short term cannot match inside a long unrelated concatenation.
     if len(combined) <= len(term) * 1.3 and fuzz.partial_ratio(combined, term) >= 90:
         return True
+    # Try word-boundary suffixes to handle label prefixes in OCR boxes
+    if _suffix_matches_term(combined, term):
+        return True
+    return False
+
+
+def _suffix_matches_term(combined: str, term: str) -> bool:
+    words = combined.split()
+    if len(words) <= 1:
+        return False
+    for i in range(1, len(words)):
+        suffix = " ".join(words[i:])
+        if len(suffix) < len(term) * 0.6:
+            break
+        if fuzz.ratio(suffix, term) >= 85:
+            return True
+        stripped = suffix.replace(" ", "")
+        # Require the stripped suffix to be close in length to the term so
+        # an incomplete fragment (e.g. "192803" vs "19280303") doesn't match
+        # prematurely before remaining boxes are added to the run.
+        if (
+            stripped != suffix
+            and len(stripped) >= len(term) * 0.85
+            and fuzz.ratio(stripped, term) >= 85
+        ):
+            return True
     return False
 
 
