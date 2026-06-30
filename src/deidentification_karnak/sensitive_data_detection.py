@@ -396,8 +396,9 @@ def normalize_text(text: str) -> str:
     text = text.lower()
     text = unicodedata.normalize("NFKD", text)
     text = "".join(c for c in text if not unicodedata.combining(c))
-    # Remove non-alphanumeric characters and extra whitespace
-    text = re.sub(r"[^a-z0-9\s]", "", text)
+    # Remove non-alphanumeric, non-letter characters (keep Unicode letters/digits)
+    text = re.sub(r"[^\w\s]", "", text, flags=re.UNICODE)
+    text = re.sub(r"[_]", "", text)
     # Replace multiple whitespace with a single space and trim
     text = re.sub(r"\s+", " ", text).strip()
     # Fix common OCR confusion: digit 0 between letters is likely 'o'
