@@ -102,7 +102,7 @@ def _detect_sensitive_indices(
                     sensitive_indices.add(i)
 
     # Third pass: reconstruct terms that PaddleOCR split across several adjacent
-    # boxes on the same line (e.g. "HUG - Gynécologie" as "HUG -"/"Gynécologie",
+    # boxes on the same line (e.g. "ABC - Gynecology" as "ABC -"/"Gynecology",
     # or a birth date "1928 / 03 / 03" as "1928"/"03"/"03"). Eligible terms are
     # those that can appear split: multi-word terms (spaces) and numeric
     # multi-segment terms (dates, IDs) whose separators are dropped by

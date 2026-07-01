@@ -30,13 +30,10 @@ for _name, _dir in (("detection", _det_model_dir), ("recognition", _rec_model_di
         raise RuntimeError(f"OCR {_name} model directory not found: {_dir}")
 
 # Device selection: "cpu", "gpu", "gpu:0", ... Unset means the PaddleOCR default
-# (CPU). Set OCR_DEVICE=gpu to run on an NVIDIA GPU
+# (CPU).
 _device = os.environ.get("OCR_DEVICE") or None
 
 # Initialize OCR
-# enable_mkldnn=False: the oneDNN backend crashes under Paddle 3.x's PIR executor
-# with PP-OCRv5 (NotImplementedError: ConvertPirAttribute2RuntimeAttribute) on
-# x86_64 Linux. It is unused on macOS arm64 and on GPU, so disabling it is safe.
 _ocr = PaddleOCR(
     use_textline_orientation=False,
     text_detection_model_name=_det_model_name,
@@ -113,7 +110,7 @@ def _split_single_block(
     )
     total_len = sum(
         [SPACE_WEIGHT if c == " " else 1.0 for c in text]
-    )  # Treat spaces as 0.3 characters for width estimation
+    )  # Treat spaces as 0.2 characters for width estimation
     if total_len == 0:
         return [(text, box)]
 
@@ -258,7 +255,7 @@ def _is_dot_delimiter(text: str, dot_idx: int) -> bool:
         return False
 
     # Acronym pattern: a single letter immediately before the dot, followed by
-    # a letter (e.g. "H.U.G") -> preserve so initials stay joined as one token.
+    # a letter (e.g. "A.B.C") -> preserve so initials stay joined as one token.
     if text[dot_idx - 1].isalpha() and text[dot_idx + 1].isalpha():
         prev = dot_idx - 2
         if prev < 0 or text[prev] in (" ", "\t", ",", ".", "/"):
@@ -296,5 +293,5 @@ def _is_dot_delimiter(text: str, dot_idx: int) -> bool:
     if digits_after == 0 and 0 < digits_before <= 4:
         return False
 
-    # Alphabetic or mixed segments on both sides (e.g. "JEAN.ALBERT") -> delimiter
+    # Alphabetic or mixed segments on both sides (e.g. "JEAN.DUPONT") -> delimiter
     return True

@@ -1,9 +1,4 @@
-"""Shared request parsing, image decoding, and API versioning for the routers.
-
-Both ``/deidentify-image`` and ``/reporting`` accept the same multipart form
-(an image plus DICOM metadata) and negotiate the API version the same way, so
-that logic lives here once and is consumed via FastAPI dependencies.
-"""
+"""Shared request parsing, image decoding, and API versioning for the routers."""
 
 import asyncio
 import json
