@@ -1,8 +1,9 @@
-from datetime import datetime
 import logging
 import re
-from typing import Dict
 import unicodedata
+from datetime import datetime
+from typing import Dict
+
 import numpy as np
 from rapidfuzz import fuzz
 from rapidfuzz.distance import Levenshtein

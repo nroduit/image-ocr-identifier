@@ -1,9 +1,9 @@
 import logging
 import os
 
+import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-import uvicorn
 
 from image_ocr_identifier.routers.deidentify_image import router as deidentify_router
 from image_ocr_identifier.routers.reporting import router as reporting_router

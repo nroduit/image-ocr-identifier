@@ -171,6 +171,26 @@ cython_debug/
 .vscode/
 
 # Project Deidentification Related
-data/
 output/
 certs/
+
+# data/ is ignored, except the committed ONNX OCR models required by the
+# portable PyInstaller build (see image_ocr_identifier.spec). Each parent
+# directory must be re-included before the specific model files can be tracked.
+data/*
+!data/models/
+data/models/*
+!data/models/onnx/
+data/models/onnx/*
+!data/models/onnx/PP-OCRv5_mobile/
+!data/models/onnx/PP-OCRv6_small_det_onnx/
+!data/models/onnx/PP-OCRv6_small_rec_onnx/
+data/models/onnx/PP-OCRv5_mobile/*
+!data/models/onnx/PP-OCRv5_mobile/det.onnx
+!data/models/onnx/PP-OCRv5_mobile/rec.onnx
+!data/models/onnx/PP-OCRv5_mobile/keys.txt
+data/models/onnx/PP-OCRv6_small_det_onnx/*
+!data/models/onnx/PP-OCRv6_small_det_onnx/inference.onnx
+data/models/onnx/PP-OCRv6_small_rec_onnx/*
+!data/models/onnx/PP-OCRv6_small_rec_onnx/inference.onnx
+!data/models/onnx/PP-OCRv6_small_rec_onnx/keys.txt

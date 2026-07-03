@@ -1,6 +1,7 @@
+from unittest.mock import patch
+
 import numpy as np
 import numpy.testing as npt
-from unittest.mock import patch
 
 from image_ocr_identifier.dicom_decode import (
     _apply_lut,

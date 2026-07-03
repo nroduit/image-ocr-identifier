@@ -11,12 +11,12 @@ from image_ocr_identifier.image_processing import (
     process_image_with_ocr,
     split_ocr_blocks,
 )
-from image_ocr_identifier.preprocessing import preprocess_image_for_ocr
 from image_ocr_identifier.models.response import (
     DeidentificationResponse,
     MaskGroup,
     ReportingResponse,
 )
+from image_ocr_identifier.preprocessing import preprocess_image_for_ocr
 from image_ocr_identifier.sensitive_data_detection import (
     detect_sensitive_data,
     detect_sensitive_keys,

@@ -1,7 +1,7 @@
 from image_ocr_identifier.image_processing import (
-    split_ocr_blocks,
-    _split_single_block,
     _find_parts,
+    _split_single_block,
+    split_ocr_blocks,
 )
 
 # --- _find_parts ---
