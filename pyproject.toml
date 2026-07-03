@@ -1,0 +1,57 @@
+[project]
+name = "deidentification-karnak"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Noah Kaltenrieder",email = "noah.kaltenrieder@hug.ch"}
+]
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "pydicom (>=3.0.2,<4.0.0)",
+    "python-gdcm (>=3.2.2,<4.0.0)",
+    "python-dotenv (>=1.2.2,<2.0.0)",
+    "pip-system-certs (>=5.3,<6.0)",
+    "fastapi[standard] (>=0.135.3,<0.136.0)",
+    "rapidfuzz (>=3.14.5,<4.0.0)",
+    "opencv-python (>=4.13.0.92,<5.0.0.0)",
+]
+
+[project.optional-dependencies]
+# Server backend (OCR_BACKEND=paddle).
+paddle = [
+    "paddleocr (>=3.4.0,<4.0.0)",
+    "paddlepaddle (>=3.3.1,<4.0.0)",
+]
+# Portable backend (OCR_BACKEND=rapid), ONNX runtime.
+# rapidocr-onnxruntime only supports Python < 3.13, so the whole extra is
+# gated behind that marker
+rapid = [
+    "onnxruntime (>=1.18,<2.0) ; python_version < '3.13'",
+    "rapidocr-onnxruntime (>=1.4,<2.0) ; python_version < '3.13'",
+]
+
+[tool.poetry]
+packages = [{include = "image_ocr_identifier", from = "src"}]
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=9.0.3,<10.0.0"
+ruff = ">=0.9,<1.0"
+pyinstaller = ">=6.0,<7.0"
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: end-to-end tests running the real OCR pipeline (deselected by default)",
+]
+addopts = "-m 'not integration'"
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

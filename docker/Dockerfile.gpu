@@ -1,0 +1,126 @@
+# syntax=docker/dockerfile:1.7
+
+# =============================================================================
+# GPU build (NVIDIA CUDA).
+#
+# REQUIREMENTS to RUN this image (cannot be tested on a Mac - no NVIDIA GPU):
+#   - A Linux host with an NVIDIA GPU and recent driver.
+#   - NVIDIA Container Toolkit installed on the host.
+#   - Run with GPU access, e.g.:
+#       docker run --gpus all -p 8000:8000 deid-karnak:gpu
+#
+# Pick CUDA_TAG to match the host driver (cu118 / cu126 / cu129 / cu130) and
+# PADDLE_GPU_VERSION to a version published on the Paddle index for that CUDA.
+# See https://www.paddlepaddle.org.cn/install/quick
+# The paddlepaddle-gpu wheel bundles CUDA/cuDNN, so a CUDA base image is not
+# required; the host driver is provided at runtime via --gpus all.
+# =============================================================================
+
+# Model names shared across stages.
+ARG DET_MODEL=PP-OCRv5_mobile_det
+ARG REC_MODEL=latin_PP-OCRv5_mobile_rec
+
+# =============================================================================
+# Stage 1 - OCR models
+# =============================================================================
+FROM alpine:3.20 AS models
+
+ARG HF_BASE=https://huggingface.co/PaddlePaddle
+ARG DET_MODEL
+ARG REC_MODEL
+
+RUN set -eux; \
+    for spec in "detection:${DET_MODEL}" "recognition:${REC_MODEL}"; do \
+        kind="${spec%%:*}"; name="${spec##*:}"; \
+        dest="/models/${kind}/${name}"; \
+        mkdir -p "${dest}"; \
+        for f in config.json inference.json inference.pdiparams inference.yml; do \
+            curl -fSL --retry 5 --retry-delay 2 --retry-all-errors \
+                -o "${dest}/${f}" \
+                "${HF_BASE}/${name}/resolve/main/${f}"; \
+        done; \
+    done
+
+# =============================================================================
+# Stage 2 - Python dependencies (GPU)
+# Installs the locked deps but swaps the CPU paddlepaddle for paddlepaddle-gpu
+# from the Paddle package index.
+# =============================================================================
+FROM --platform=linux/amd64 python:3.12-slim AS builder
+
+# CUDA target and matching paddlepaddle-gpu version.
+ARG CUDA_TAG=cu126
+ARG PADDLE_GPU_VERSION=3.3.0
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    POETRY_NO_INTERACTION=1
+
+RUN pip install "poetry>=2.1,<3.0" poetry-plugin-export
+
+WORKDIR /app
+
+COPY pyproject.toml poetry.lock README.md ./
+
+# Export locked deps, drop the CPU paddlepaddle line, install the rest, then add
+# paddlepaddle-gpu from the Paddle index (its CUDA/cuDNN runtime is bundled).
+RUN poetry export --only main --without-hashes -f requirements.txt -o /tmp/requirements.txt \
+    && grep -v '^paddlepaddle==' /tmp/requirements.txt > /tmp/requirements.nogpu.txt \
+    && python -m venv /app/.venv \
+    && /app/.venv/bin/pip install --no-cache-dir -r /tmp/requirements.nogpu.txt \
+    && /app/.venv/bin/pip install --no-cache-dir \
+        "paddlepaddle-gpu==${PADDLE_GPU_VERSION}" \
+        -i "https://www.paddlepaddle.org.cn/packages/stable/${CUDA_TAG}/"
+
+# =============================================================================
+# Stage 3 - Runtime (GPU)
+# =============================================================================
+FROM --platform=linux/amd64 python:3.12-slim AS runtime
+
+ARG DET_MODEL
+ARG REC_MODEL
+
+LABEL org.opencontainers.image.title="deidentification-karnak" \
+      org.opencontainers.image.description="OCR-based DICOM burned-in text deidentification API (GPU)" \
+      org.opencontainers.image.source="https://git.hisaas.hcuge.ch/projects/VNAI/repos/image-ocr-identifier"
+
+# Native libraries required by the OpenCV wheels and PaddlePaddle's OpenMP runtime.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libgl1 \
+        libglib2.0-0 \
+        libgomp1 \
+        libsm6 \
+        libxext6 \
+        libxrender1 \
+        libxcb1 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd --system --create-home --home-dir /home/app --shell /usr/sbin/nologin app
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/app/.venv/bin:${PATH}" \
+    PYTHONPATH=/app/src \
+    HOME=/home/app \
+    MODEL_DATA_PATH=/app/data \
+    OCR_DET_MODEL=${DET_MODEL} \
+    OCR_REC_MODEL=${REC_MODEL} \
+    OCR_DEVICE=gpu \
+    PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True \
+    PORT=8000 \
+    LOG_LEVEL=INFO
+# WORKERS: on GPU keep this low (e.g. 1). Each worker loads the models into GPU
+# memory, so too many workers will exhaust VRAM.
+
+COPY --from=builder /app/.venv /app/.venv
+COPY --chown=app:app src ./src
+COPY --from=models --chown=app:app /models /app/data/models
+
+USER app
+
+EXPOSE 8000
+
+CMD ["python", "-m", "image_ocr_identifier.main"]

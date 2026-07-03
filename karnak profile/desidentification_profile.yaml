@@ -1,0 +1,16 @@
+name: Example Karnak Profile
+version: "1.0"
+minimumKarnakVersion: 0.9.2
+profileElements:
+  - name: Clean pixel data
+    codename: clean.pixel.data
+  - name: DICOM basic profile
+    codename: basic.dicom.profile
+masks:
+  - stationName: "*"
+    color: "103050"
+    rectangles:
+      - 9 4 128 17
+      - 182 4 56 17
+      - 392 6 289 14
+      - 822 4 163 17
