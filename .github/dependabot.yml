@@ -1,0 +1,39 @@
+version: 2
+updates:
+  # GitHub Actions used by the workflows in .github/workflows/.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # Python dependencies (Poetry: pyproject.toml + poetry.lock at the root).
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: deps
+    groups:
+      python:
+        patterns:
+          - "*"
+
+  # Base images in the Dockerfiles under /docker
+  # (Dockerfile, Dockerfile.gpu, Dockerfile.local).
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: docker
+    groups:
+      docker:
+        patterns:
+          - "*"
