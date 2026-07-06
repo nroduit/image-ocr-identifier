@@ -1,0 +1,48 @@
+# Runs the unit test suite on every push and pull request.
+# Integration tests are deselected by default (see pyproject.toml addopts).
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+# Cancel an in-progress run when a new commit is pushed to the same ref.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      # Keep testing the other Python version even if one fails.
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      # Poetry must be installed before setup-python so its built-in
+      # "cache: poetry" can find the poetry.lock-based cache.
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: poetry
+
+      # Create the virtualenv with the Python version selected above.
+      - name: Point Poetry at the selected Python
+        run: poetry env use python
+
+      # Installs main + dev dependencies (no OCR extras: the tests mock the
+      # OCR engine, so paddle/rapid are not needed here).
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Run unit tests
+        run: poetry run pytest

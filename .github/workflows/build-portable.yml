@@ -1,0 +1,118 @@
+# Builds the standalone portable executable (PyInstaller, RapidOCR/ONNX backend)
+# for Linux, macOS and Windows.
+#
+# Triggers:
+#   - pushing a version tag (v*)  -> builds and attaches the archives to the
+#     matching GitHub Release.
+#   - manual run (workflow_dispatch) -> builds and uploads the archives as run
+#     artifacts. You can pick which bundled ONNX model to use.
+#
+# The ONNX models live in the repository under data/models/onnx/
+name: Build portable
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      ocr_model:
+        description: "ONNX model to bundle in the portable build"
+        type: choice
+        default: PP-OCRv5_mobile
+        options:
+          - PP-OCRv5_mobile
+          - PP-OCRv6_small
+
+# Required so the tag build can create/update the GitHub Release.
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: linux-x86_64
+          - os: macos-latest
+            asset: macos-arm64
+          - os: windows-latest
+            asset: windows-x86_64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      # The portable/rapid backend requires Python < 3.13 (see pyproject.toml).
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: poetry
+
+      - name: Point Poetry at the selected Python
+        run: poetry env use python
+
+      # The .spec reads OCR_MODEL from .env to decide which model to bundle.
+      # Defaults to PP-OCRv5_mobile on tag builds.
+      - name: Select the OCR model
+        shell: bash
+        run: echo "OCR_MODEL=${{ github.event.inputs.ocr_model || 'PP-OCRv5_mobile' }}" > .env
+
+      # rapid extra = onnxruntime + rapidocr; dev group brings PyInstaller.
+      - name: Install dependencies (rapid + dev)
+        run: poetry install --no-interaction --extras rapid
+
+      # UPX compresses the bundle. It is unreliable on macOS arm64, so it is
+      # only installed on Linux/Windows; PyInstaller silently skips it when
+      # absent, so the macOS build still succeeds.
+      - name: Install UPX (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y upx-ucl
+
+      - name: Install UPX (Windows)
+        if: runner.os == 'Windows'
+        run: choco install upx -y
+
+      # The .spec injects Homebrew's OpenSSL into cv2 so the frozen binary runs.
+      - name: Install OpenSSL (macOS)
+        if: runner.os == 'macOS'
+        run: brew install openssl@3 || true
+
+      - name: Build the portable executable
+        run: poetry run pyinstaller image_ocr_identifier.spec --noconfirm
+
+      # PyInstaller's COLLECT output is dist/image-ocr-identifier/.
+      - name: Package the bundle (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: tar -czf "deidentify-karnak-${{ matrix.asset }}.tar.gz" -C dist image-ocr-identifier
+
+      - name: Package the bundle (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path dist/image-ocr-identifier -DestinationPath "deidentify-karnak-${{ matrix.asset }}.zip"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deidentify-karnak-${{ matrix.asset }}
+          path: |
+            deidentify-karnak-${{ matrix.asset }}.tar.gz
+            deidentify-karnak-${{ matrix.asset }}.zip
+          if-no-files-found: ignore
+
+      - name: Attach archives to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            deidentify-karnak-${{ matrix.asset }}.tar.gz
+            deidentify-karnak-${{ matrix.asset }}.zip
