@@ -46,7 +46,7 @@ RUN set -eux; \
 # Installs the locked deps but swaps the CPU paddlepaddle for paddlepaddle-gpu
 # from the Paddle package index.
 # =============================================================================
-FROM --platform=linux/amd64 python:3.14-slim AS builder
+FROM --platform=linux/amd64 python:3.12-slim AS builder
 
 # CUDA target and matching paddlepaddle-gpu version.
 ARG CUDA_TAG=cu126
@@ -75,7 +75,7 @@ RUN poetry export --only main --without-hashes -f requirements.txt -o /tmp/requi
 # =============================================================================
 # Stage 3 - Runtime (GPU)
 # =============================================================================
-FROM --platform=linux/amd64 python:3.14-slim AS runtime
+FROM --platform=linux/amd64 python:3.12-slim AS runtime
 
 ARG DET_MODEL
 ARG REC_MODEL
