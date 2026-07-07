@@ -11,7 +11,7 @@ ARG REC_MODEL=latin_PP-OCRv5_mobile_rec
 # Models are small and version-pinned; baking them in keeps startup fast and
 # reproducible.
 # =============================================================================
-FROM alpine:3.20 AS models
+FROM alpine:3.24 AS models
 
 ARG HF_BASE=https://huggingface.co/PaddlePaddle
 ARG DET_MODEL

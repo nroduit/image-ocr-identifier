@@ -23,7 +23,7 @@ ARG REC_MODEL=latin_PP-OCRv5_mobile_rec
 # =============================================================================
 # Stage 1 - OCR models
 # =============================================================================
-FROM alpine:3.20 AS models
+FROM alpine:3.24 AS models
 
 ARG HF_BASE=https://huggingface.co/PaddlePaddle
 ARG DET_MODEL
