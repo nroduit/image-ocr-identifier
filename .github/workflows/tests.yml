@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Poetry must be installed before setup-python so its built-in
       # "cache: poetry" can find the poetry.lock-based cache.
@@ -30,7 +30,7 @@ jobs:
         run: pipx install poetry
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: poetry

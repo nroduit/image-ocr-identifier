@@ -45,14 +45,14 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Poetry
         run: pipx install poetry
 
       # The portable/rapid backend requires Python < 3.13 (see pyproject.toml).
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: poetry
@@ -101,7 +101,7 @@ jobs:
         run: Compress-Archive -Path dist/image-ocr-identifier -DestinationPath "deidentify-karnak-${{ matrix.asset }}.zip"
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: deidentify-karnak-${{ matrix.asset }}
           path: |
@@ -111,7 +111,7 @@ jobs:
 
       - name: Attach archives to the release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             deidentify-karnak-${{ matrix.asset }}.tar.gz
