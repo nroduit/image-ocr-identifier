@@ -12,9 +12,9 @@ dependencies = [
     "python-gdcm (>=3.2.2,<4.0.0)",
     "python-dotenv (>=1.2.2,<2.0.0)",
     "pip-system-certs (>=5.3,<6.0)",
-    "fastapi[standard] (>=0.135.3,<0.136.0)",
+    "fastapi[standard] (>=0.139.0,<0.140.0)",
     "rapidfuzz (>=3.14.5,<4.0.0)",
-    "opencv-python (>=4.13.0.92,<5.0.0.0)",
+    "opencv-python (>=5.0.0.93,<6.0.0.0)",
 ]
 
 [project.optional-dependencies]
