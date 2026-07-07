@@ -3,7 +3,7 @@
 # =============================================================================
 # GPU build (NVIDIA CUDA).
 #
-# REQUIREMENTS to RUN this image (cannot be tested on a Mac - no NVIDIA GPU):
+# REQUIREMENTS to RUN this image:
 #   - A Linux host with an NVIDIA GPU and recent driver.
 #   - NVIDIA Container Toolkit installed on the host.
 #   - Run with GPU access, e.g.:

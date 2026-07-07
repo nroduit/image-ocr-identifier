@@ -11,6 +11,39 @@ Two OCR backends are available, selectable via the `OCR_BACKEND` environment var
 | `paddle` (default) | PaddleOCR | Server deployment, best accuracy, GPU support |
 | `rapid` | RapidOCR (ONNX) | Portable standalone executable, lightweight |
 
+
+## Table of Contents
+
+1. [Language Support](#language-support)
+2. [Features](#features)
+3. [Requirements](#requirements)
+4. [Installation](#installation)
+   - [Server (PaddleOCR backend)](#server-paddleocr-backend)
+   - [Portable (RapidOCR/ONNX backend)](#portable-rapidocronnx-backend)
+   - [Development (both backends)](#development-both-backends)
+5. [OCR Models](#ocr-models)
+   - [Paddle backend models](#paddle-backend-models)
+   - [Rapid backend models (ONNX)](#rapid-backend-models-onnx)
+6. [Configuration](#configuration)
+   - [Common variables](#common-variables)
+   - [Paddle backend variables](#paddle-backend-variables-ocr_backendpaddle)
+   - [Rapid backend variables](#rapid-backend-variables-ocr_backendrapid)
+7. [Running the Service](#running-the-service)
+   - [Server (development)](#server-development)
+   - [Docker (CPU)](#docker-cpu)
+   - [Docker (GPU)](#docker-gpu)
+8. [Building the Portable Executable](#building-the-portable-executable)
+9. [API Reference](#api-reference)
+   - [Health Check](#health-check)
+   - [Deidentify Image](#deidentify-image)
+   - [Reporting](#reporting)
+10. [How It Works](#how-it-works)
+11. [Running Tests](#running-tests)
+12. [Project Structure](#project-structure)
+13. [Integration with Karnak](#integration-with-karnak)
+14. [License](#license)
+
+
 ## Language Support
 
 > **Important:** Only **Latin** and **CJ** (Chinese, Japanese) scripts are supported by the OCR engine. Text in other scripts (Arabic, Cyrillic, Devanagari, Korean, Thai, etc.) will **not** be detected or deidentified correctly.
