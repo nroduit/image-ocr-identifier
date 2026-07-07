@@ -13,7 +13,8 @@ from image_ocr_identifier.utils import numpy_to_python_type
 logger = logging.getLogger(__name__)
 
 
-# Compare OCR results with sensitive_data_list and return only the data that needs to be masked
+# Compare OCR results with sensitive_data_list
+# and return only the data that needs to be masked
 def detect_sensitive_data(
     ocr_result: Dict[str, list | np.ndarray], sensitive_data_list: Dict[str, str]
 ) -> Dict[str, list]:
@@ -94,7 +95,8 @@ def _detect_sensitive_indices(
         ):
             sensitive_indices.add(i)
 
-    # Second pass: for siblings in the same group as a match, retry with relaxed threshold
+    # Second pass: for siblings in the same group as a match,
+    # retry with relaxed threshold
     if groups:
         sensitive_groups = {groups[i] for i in sensitive_indices}
         for i, g in enumerate(groups):

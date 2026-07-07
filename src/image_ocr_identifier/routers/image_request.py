@@ -44,7 +44,8 @@ def version_dep(request: Request) -> int:
         if version not in SUPPORTED_VERSIONS:
             raise HTTPException(
                 status_code=406,
-                detail=f"Unsupported API version {version}. Supported: {sorted(SUPPORTED_VERSIONS)}",
+                detail=f"Unsupported API version {version}. "
+                f"Supported: {sorted(SUPPORTED_VERSIONS)}",
             )
         return version
     return DEFAULT_VERSION
@@ -71,7 +72,8 @@ async def parse_image_request(
     image: UploadFile,
     sensitive_data_list: str = Form(
         ...,
-        description='JSON object mapping DICOM tag names to their string values, e.g. {"PatientID": "12345"}',
+        description="JSON object mapping DICOM tag names to their string values,"
+        ' e.g. {"PatientID": "12345"}',
     ),
     sop_instance_uid: str | None = Form(None, description="DICOM SOP Instance UID"),
     rows: int | None = Form(
@@ -100,19 +102,23 @@ async def parse_image_request(
     ),
     is_monochrome1: bool = Form(
         False,
-        description="True if photometric interpretation is MONOCHROME1 (raw pixel data only)",
+        description="True if photometric interpretation is MONOCHROME1 "
+        "(raw pixel data only)",
     ),
     palette_color_lut: str | None = Form(
         None,
-        description='JSON object with "red", "green", "blue" arrays for palette color LUT (raw pixel data only)',
+        description='JSON object with "red", "green", "blue" arrays'
+        " for palette color LUT (raw pixel data only)",
     ),
     transfer_syntax_uid: str | None = Form(
         None,
-        description="DICOM Transfer Syntax UID for compressed pixel data (e.g. 1.2.840.10008.1.2.4.70)",
+        description="DICOM Transfer Syntax UID "
+        "for compressed pixel data (e.g. 1.2.840.10008.1.2.4.70)",
     ),
     photometric_interpretation: str | None = Form(
         None,
-        description="DICOM Photometric Interpretation (e.g. MONOCHROME1, MONOCHROME2, RGB, YBR_FULL_422)",
+        description="DICOM Photometric Interpretation "
+        "(e.g. MONOCHROME1, MONOCHROME2, RGB, YBR_FULL_422)",
     ),
 ) -> ImageRequest:
     if image.content_type not in SUPPORTED_CONTENT_TYPES:
@@ -137,7 +143,8 @@ async def parse_image_request(
 
     if not isinstance(sensitive_data, dict):
         logger.warning(
-            "Rejected request: sensitive_data_list is not a JSON object (filename=%r, type=%s)",
+            "Rejected request: "
+            "sensitive_data_list is not a JSON object (filename=%r, type=%s)",
             image.filename,
             type(sensitive_data).__name__,
         )
@@ -176,7 +183,8 @@ async def decode_image(request: ImageRequest) -> np.ndarray | None:
             parsed_palette = json.loads(request.palette_color_lut)
         except (json.JSONDecodeError, TypeError) as exc:
             logger.warning(
-                "Rejected request: invalid JSON for palette_color_lut (filename=%r): %s",
+                "Rejected request: "
+                "invalid JSON for palette_color_lut (filename=%r): %s",
                 request.filename,
                 exc,
             )

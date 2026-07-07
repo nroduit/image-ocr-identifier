@@ -3,19 +3,19 @@
 
 Usage:
     # Single file (path relative to data/integration_test/)
-    poetry run python scripts/test_single.py "25.09.2024/1.2.840.113619.2.391.20423.1727257700.4920.60.512"
+    poetry run python scripts/test_single.py "folder/file"
 
     # Multiple files
-    poetry run python scripts/test_single.py "25.09.2024/1.2.840.113619.2.391.20423.1727257700.4920.60.512" "16.09.2024/4018fe95.dcm"
+    poetry run python scripts/test_single.py "folder/file1" "folder/file2.dcm"
 
     # With debug images saved to disk
-    DEBUG_IMAGES=1 poetry run python scripts/test_single.py "16.09.2024/4018fe95.dcm"
+    DEBUG_IMAGES=1 poetry run python scripts/test_single.py "folder/file"
 
     # Grep pattern (runs all files whose path contains the substring)
     poetry run python scripts/test_single.py --grep "25.09.2024"
 
     # Update golden for specific files
-    poetry run python scripts/test_single.py --update-golden "16.09.2024/4018fe95.dcm"
+    poetry run python scripts/test_single.py --update-golden "folder/file"
 """
 
 import argparse
@@ -133,7 +133,7 @@ def main():
     parser.add_argument(
         "files",
         nargs="+",
-        help="DICOM paths relative to data/integration_test/, or substrings with --grep",
+        help="DICOM paths relative to data/integration_test/ or substrings with --grep",
     )
     parser.add_argument(
         "--grep",

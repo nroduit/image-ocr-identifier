@@ -46,7 +46,8 @@ def _resolve_model_dir_paths(onnx_dir: Path, model_name: str) -> tuple[str, str,
 
     Supported layouts:
       - PP-OCRv5_mobile: single folder with det.onnx, rec.onnx, keys.txt
-      - PP-OCRv6_{size}: separate _det_onnx/_rec_onnx folders with inference.onnx + keys.txt
+      - PP-OCRv6_{size}: separate _det_onnx/_rec_onnx folders
+        with inference.onnx + keys.txt
     """
     model_dir = onnx_dir / model_name
     if model_dir.is_dir():
@@ -99,6 +100,7 @@ def _get_ocr():
     for name, path in zip(
         ("detection", "recognition", "keys"),
         (det_model_path, rec_model_path, rec_keys_path),
+        strict=False,
     ):
         if not Path(path).is_file():
             raise RuntimeError(f"OCR {name} file not found: {path}")

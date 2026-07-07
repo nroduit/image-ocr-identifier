@@ -225,7 +225,8 @@ def _apply_lut(
     window_width: float | None,
     is_monochrome1: bool,
 ) -> np.ndarray:
-    """Apply modality LUT, VOI windowing, and photometric inversion to produce a uint8 array."""
+    """Apply modality LUT, VOI windowing,
+    and photometric inversion to produce a uint8 array."""
     arr = pixel_array.astype(np.float64)
 
     # Modality LUT: stored pixel value -> modality unit (e.g. Hounsfield)

@@ -57,7 +57,7 @@ def save_debug_ocr(
     if img.ndim == 2:
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
-    for text, box in zip(texts, boxes):
+    for text, box in zip(texts, boxes, strict=False):
         x_min, y_min, x_max, y_max = int(box[0]), int(box[1]), int(box[2]), int(box[3])
         cv2.rectangle(img, (x_min, y_min), (x_max, y_max), (0, 0, 255), 1)
         cv2.putText(
@@ -102,7 +102,7 @@ def save_debug_split_boxes(
     texts = ocr_result["texts"]
     boxes = ocr_result["boxes"]
 
-    for idx, (text, box) in enumerate(zip(texts, boxes)):
+    for idx, (text, box) in enumerate(zip(texts, boxes, strict=False)):
         color = _SPLIT_BOX_COLORS[idx % len(_SPLIT_BOX_COLORS)]
         x_min, y_min, x_max, y_max = int(box[0]), int(box[1]), int(box[2]), int(box[3])
         cv2.rectangle(img, (x_min, y_min), (x_max, y_max), color, 1)

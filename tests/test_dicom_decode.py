@@ -212,7 +212,8 @@ def test_decode_image_bytes_raw_grayscale():
 
 
 def test_decode_image_bytes_non_compressed_transfer_syntax_falls_through_to_raw():
-    # Explicit VR Little Endian (1.2.840.10008.1.2.1) is uncompressed -> falls through to raw path
+    # Explicit VR Little Endian (1.2.840.10008.1.2.1) is uncompressed
+    # -> falls through to raw path
     raw = np.zeros((4, 4), dtype=np.uint8).tobytes()
     result = decode_image_bytes(
         raw,

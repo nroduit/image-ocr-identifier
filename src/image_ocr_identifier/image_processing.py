@@ -32,7 +32,7 @@ def split_ocr_blocks(ocr_result: dict[str, list]) -> dict[str, list]:
     split_boxes = []
     groups = []
 
-    for group_id, (text, box) in enumerate(zip(texts, boxes)):
+    for group_id, (text, box) in enumerate(zip(texts, boxes, strict=False)):
         sub_blocks = _split_single_block(text, box)
         for sub_text, sub_box in sub_blocks:
             split_texts.append(sub_text)

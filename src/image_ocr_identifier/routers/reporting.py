@@ -39,7 +39,9 @@ async def reporting(
         )
         raise HTTPException(
             status_code=400,
-            detail="Failed to decode image. Provide rows, columns, bits_allocated, samples_per_pixel, transfer_syntax_uid, and photometric_interpretation.",
+            detail="Failed to decode image. "
+            "Provide rows, columns, bits_allocated, samples_per_pixel, "
+            "transfer_syntax_uid, and photometric_interpretation.",
         )
 
     result = await asyncio.to_thread(
