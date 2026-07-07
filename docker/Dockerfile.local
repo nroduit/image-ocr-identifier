@@ -48,7 +48,7 @@ RUN set -eux; \
 # using the committed poetry.lock for reproducible builds.
 # Pinned to linux/amd64: paddlepaddle only publishes x86_64 Linux wheels.
 # =============================================================================
-FROM --platform=linux/amd64 python:3.14-slim AS builder
+FROM --platform=linux/amd64 python:3.12-slim AS builder
 
 COPY certs/ /usr/local/share/ca-certificates/
 RUN update-ca-certificates
@@ -82,7 +82,7 @@ RUN poetry export --only main --without-hashes -f requirements.txt -o /tmp/requi
 # required by OpenCV and PaddlePaddle.
 # Pinned to linux/amd64: paddlepaddle only publishes x86_64 Linux wheels.
 # =============================================================================
-FROM --platform=linux/amd64 python:3.14-slim AS runtime
+FROM --platform=linux/amd64 python:3.12-slim AS runtime
 
 ARG DET_MODEL
 ARG REC_MODEL
