@@ -1,0 +1,72 @@
+name: Docker publish
+
+# Publishing only happens for the canonical history: pushes to main and version
+# tags. Pull requests and feature branches never build or push an image.
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+concurrency:
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # TODO: replace CHANGEME with your Docker Hub namespace (user or org) once the
+  # account exists, e.g. myaccount/image-ocr-identifier.
+  IMAGE_NAME: CHANGEME/image-ocr-identifier
+
+jobs:
+  publish:
+    name: Build and push (${{ matrix.variant }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # CPU image: default tags (main, vX.Y.Z, latest).
+          - variant: cpu
+            dockerfile: docker/Dockerfile
+            flavor: ""
+          # GPU image: same tags with a -gpu suffix (main-gpu, vX.Y.Z-gpu,
+          # latest-gpu).
+          - variant: gpu
+            dockerfile: docker/Dockerfile.gpu
+            flavor: "suffix=-gpu,onlatest=true"
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          flavor: ${{ matrix.flavor }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5
+      - name: Login to Docker Hub
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          # Both Dockerfiles pin FROM --platform=linux/amd64 (paddlepaddle only
+          # ships x86_64 Linux wheels), so only amd64 is built.
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Separate cache per variant so CPU and GPU layers don't collide.
+          cache-from: type=gha,scope=${{ matrix.variant }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.variant }}

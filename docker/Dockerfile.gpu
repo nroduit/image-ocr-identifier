@@ -43,8 +43,7 @@ RUN set -eux; \
 
 # =============================================================================
 # Stage 2 - Python dependencies (GPU)
-# Installs the locked deps but swaps the CPU paddlepaddle for paddlepaddle-gpu
-# from the Paddle package index.
+# Installs the locked deps but with paddlepaddle-gpu
 # =============================================================================
 FROM --platform=linux/amd64 python:3.12-slim AS builder
 
