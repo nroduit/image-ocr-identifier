@@ -19,7 +19,7 @@ concurrency:
 env:
   # TODO: replace CHANGEME with your Docker Hub namespace (user or org) once the
   # account exists, e.g. myaccount/image-ocr-identifier.
-  IMAGE_NAME: CHANGEME/image-ocr-identifier
+  IMAGE_NAME: osirixfoundation/image-ocr-identifier
 
 jobs:
   publish:
