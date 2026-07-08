@@ -110,6 +110,9 @@ COPY --from=builder /app/.venv /app/.venv
 COPY --chown=app:app src ./src
 COPY --from=models --chown=app:app /models /app/data/models
 
+# Debug image output (DEBUG_IMAGES=1) is written under /app/output
+RUN mkdir -p /app/output && chown app:app /app/output
+
 USER app
 
 EXPOSE 8000
