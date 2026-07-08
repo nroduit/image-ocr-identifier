@@ -17,6 +17,8 @@ ARG HF_BASE=https://huggingface.co/PaddlePaddle
 ARG DET_MODEL
 ARG REC_MODEL
 
+RUN apk add --no-cache curl
+
 RUN set -eux; \
     for spec in "detection:${DET_MODEL}" "recognition:${REC_MODEL}"; do \
         kind="${spec%%:*}"; name="${spec##*:}"; \
@@ -54,7 +56,7 @@ COPY pyproject.toml poetry.lock README.md ./
 # virtualenv. pip is used instead of "poetry install" because the dependency tree
 # pulls both opencv-python and opencv-contrib-python, whose files overlap in cv2/;
 # poetry's installer aborts on the collision while pip resolves it cleanly.
-RUN poetry export --only main --without-hashes -f requirements.txt -o /tmp/requirements.txt \
+RUN poetry export --only main --extras paddle --without-hashes -f requirements.txt -o /tmp/requirements.txt \
     && python -m venv /app/.venv \
     && /app/.venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt
 
@@ -112,7 +114,7 @@ USER app
 
 EXPOSE 8000
 
-# HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
-#     CMD ["python", "-c", "import os,urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','8000')+'/health', timeout=3).status==200 else 1)"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
+    CMD ["python", "-c", "import os,urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','8000')+'/health', timeout=3).status==200 else 1)"]
 
 CMD ["python", "-m", "image_ocr_identifier.main"]
