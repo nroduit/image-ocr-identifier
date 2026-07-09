@@ -70,16 +70,12 @@ jobs:
       - name: Install dependencies (rapid + dev)
         run: poetry install --no-interaction --extras rapid
 
-      # UPX compresses the bundle. It is unreliable on macOS arm64, so it is
-      # only installed on Linux/Windows; PyInstaller silently skips it when
-      # absent, so the macOS build still succeeds.
+      # UPX compresses the bundle. It is unreliable on macOS arm64 and corrupts
+      # bundled DLLs on Windows (onnxruntime/OpenCV/CPython), so the .spec only
+      # enables UPX on Linux. Install it there; the .spec skips it elsewhere.
       - name: Install UPX (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y upx-ucl
-
-      - name: Install UPX (Windows)
-        if: runner.os == 'Windows'
-        run: choco install upx -y
 
       # The .spec injects Homebrew's OpenSSL into cv2 so the frozen binary runs.
       - name: Install OpenSSL (macOS)

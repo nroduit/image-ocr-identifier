@@ -1,4 +1,5 @@
 import os
+import sys
 
 from dotenv import dotenv_values
 from PyInstaller.utils.hooks import collect_all, collect_submodules
@@ -106,6 +107,13 @@ a = Analysis(
     ],
     noarchive=False,
 )
+# UPX corrupts several bundled Windows DLLs (onnxruntime, OpenCV, the CPython
+# runtime), which makes the frozen exe crash on launch with no traceback.
+# strip is also unsupported on Windows. Keep both only on Linux/macOS.
+_is_windows = sys.platform.startswith("win")
+_use_upx = not _is_windows
+_strip = not _is_windows
+
 pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
@@ -114,15 +122,15 @@ exe = EXE(
     exclude_binaries=True,
     name="image-ocr-identifier",
     console=True,
-    strip=True,  # Linux/macOS : retire les symboles
-    upx=True,  # nécessite UPX installé
+    strip=_strip,  # Linux/macOS : retire les symboles
+    upx=_use_upx,  # nécessite UPX installé, désactivé sous Windows
 )
 coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
-    strip=True,
-    upx=True,
+    strip=_strip,
+    upx=_use_upx,
     upx_exclude=[],
     name="image-ocr-identifier",
 )

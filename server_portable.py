@@ -33,18 +33,54 @@ def _setup_env() -> None:
     os.environ.setdefault("WORKERS", "1")
 
 
-def main() -> None:
-    multiprocessing.freeze_support()  # indispensable si un worker est spawn
+def _log_dir() -> str:
+    # Next to the executable when frozen, next to this script otherwise.
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def _run() -> None:
     _setup_env()
     import uvicorn
 
+    # Import the app eagerly so import errors are caught here (and logged)
+    # instead of being swallowed by uvicorn's import machinery under PyInstaller.
+    from image_ocr_identifier.main import app
+
     uvicorn.run(
-        "image_ocr_identifier.main:app",
+        app,
         host=os.environ.get("HOST", "127.0.0.1"),  # local uniquement
         port=int(os.environ.get("PORT", "8000")),
         workers=1,
         h11_max_incomplete_event_size=50 * 1024 * 1024,
     )
+
+
+def main() -> None:
+    multiprocessing.freeze_support()  # indispensable si un worker est spawn
+    try:
+        _run()
+    except Exception:
+        import traceback
+
+        tb = traceback.format_exc()
+        log_path = os.path.join(_log_dir(), "deidentify-karnak-crash.log")
+        try:
+            with open(log_path, "a", encoding="utf-8") as handle:
+                handle.write(tb)
+        except OSError:
+            pass
+        sys.stderr.write(tb)
+        sys.stderr.flush()
+        # Keep the console window open so the error is readable when the exe is
+        # launched by double-click (Windows) instead of from a terminal.
+        if getattr(sys, "frozen", False):
+            try:
+                input("\nA fatal error occurred. Press Enter to close...")
+            except (EOFError, KeyboardInterrupt):
+                pass
+        raise
 
 
 if __name__ == "__main__":
