@@ -93,20 +93,20 @@ jobs:
       - name: Package the bundle (Linux/macOS)
         if: runner.os != 'Windows'
         shell: bash
-        run: tar -czf "deidentify-karnak-${{ matrix.asset }}.tar.gz" -C dist image-ocr-identifier
+        run: tar -czf "image-ocr-identifier-${{ matrix.asset }}.tar.gz" -C dist image-ocr-identifier
 
       - name: Package the bundle (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Compress-Archive -Path dist/image-ocr-identifier -DestinationPath "deidentify-karnak-${{ matrix.asset }}.zip"
+        run: Compress-Archive -Path dist/image-ocr-identifier -DestinationPath "image-ocr-identifier-${{ matrix.asset }}.zip"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
-          name: deidentify-karnak-${{ matrix.asset }}
+          name: image-ocr-identifier-${{ matrix.asset }}
           path: |
-            deidentify-karnak-${{ matrix.asset }}.tar.gz
-            deidentify-karnak-${{ matrix.asset }}.zip
+            image-ocr-identifier-${{ matrix.asset }}.tar.gz
+            image-ocr-identifier-${{ matrix.asset }}.zip
           if-no-files-found: ignore
 
       - name: Attach archives to the release
@@ -114,5 +114,5 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            deidentify-karnak-${{ matrix.asset }}.tar.gz
-            deidentify-karnak-${{ matrix.asset }}.zip
+            image-ocr-identifier-${{ matrix.asset }}.tar.gz
+            image-ocr-identifier-${{ matrix.asset }}.zip
