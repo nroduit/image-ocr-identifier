@@ -7,7 +7,7 @@
 #   - A Linux host with an NVIDIA GPU and recent driver.
 #   - NVIDIA Container Toolkit installed on the host.
 #   - Run with GPU access, e.g.:
-#       docker run --gpus all -p 8000:8000 deid-karnak:gpu
+#       docker run --gpus all -p 8000:8000 image-ocr-identifier:gpu
 #
 # Pick CUDA_TAG to match the host driver (cu118 / cu126 / cu129 / cu130) and
 # PADDLE_GPU_VERSION to a version published on the Paddle index for that CUDA.
@@ -81,9 +81,9 @@ FROM --platform=linux/amd64 python:3.12-slim AS runtime
 ARG DET_MODEL
 ARG REC_MODEL
 
-LABEL org.opencontainers.image.title="deidentification-karnak" \
+LABEL org.opencontainers.image.title="image-ocr-identifier-gpu" \
       org.opencontainers.image.description="OCR-based DICOM burned-in text deidentification API (GPU)" \
-      org.opencontainers.image.source="https://git.hisaas.hcuge.ch/projects/VNAI/repos/image-ocr-identifier"
+      org.opencontainers.image.source="https://github.com/nroduit/image-ocr-identifier"
 
 # Native libraries required by the OpenCV wheels and PaddlePaddle's OpenMP runtime.
 RUN apt-get update \

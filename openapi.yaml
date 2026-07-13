@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Deidentification API
+  title: Image OCR Identifier
   description: API for deidentifying DICOM images using OCR and sensitive data detection.
   version: 0.1.0
   contact:

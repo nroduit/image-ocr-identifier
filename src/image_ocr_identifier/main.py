@@ -17,7 +17,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Deidentification API",
+    title="Image OCR Identifier",
     description="API for deidentifying images using OCR",
     version="0.0.1",
 )

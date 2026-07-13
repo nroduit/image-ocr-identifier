@@ -73,7 +73,7 @@ Two OCR backends are available, selectable via the `OCR_BACKEND` environment var
 
 ```bash
 git clone https://github.com/nroduit/image-ocr-identifier
-cd deidentification-karnak
+cd image-ocr-identifier
 
 # Install base + paddle backend
 poetry install --extras paddle
@@ -200,8 +200,8 @@ poetry run python -m image_ocr_identifier.main
 ### Docker (CPU)
 
 ```bash
-docker build -f docker/Dockerfile -t deidentification-karnak .
-docker run -p 8000:8000 deidentification-karnak
+docker build -f docker/Dockerfile -t image-ocr-identifier .
+docker run -p 8000:8000 image-ocr-identifier
 ```
 
 Build with custom models:
@@ -210,7 +210,7 @@ Build with custom models:
 docker build -f docker/Dockerfile \
   --build-arg DET_MODEL=PP-OCRv6_medium_det \
   --build-arg REC_MODEL=PP-OCRv6_medium_rec \
-  -t deidentification-karnak .
+  -t image-ocr-identifier .
 ```
 
 ### Docker (GPU)
@@ -218,9 +218,39 @@ docker build -f docker/Dockerfile \
 Requires an NVIDIA GPU with drivers installed and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
 
 ```bash
-docker build -f docker/Dockerfile.gpu -t deidentification-karnak:gpu .
-docker run --gpus all -p 8000:8000 deidentification-karnak:gpu
+docker build -f docker/Dockerfile.gpu -t image-ocr-identifier:gpu .
+docker run --gpus all -p 8000:8000 image-ocr-identifier:gpu
 ```
+
+### Docker Compose (recommended for deployment)
+
+A single [docker-compose.yml](docker-compose.yml) deploys the API using one of
+two profiles. Configuration is read from `.env` (copy from `.env.example`).
+
+CPU-only server:
+
+```bash
+docker compose --profile cpu up -d --build
+```
+
+GPU server (requires NVIDIA drivers + the
+[NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)):
+
+```bash
+docker compose --profile gpu up -d --build
+```
+
+Common operations:
+
+```bash
+docker compose --profile cpu logs -f     # follow logs
+docker compose --profile cpu ps          # status / health
+docker compose --profile cpu down        # stop and remove
+```
+
+Build-time model selection and the GPU CUDA target are set in `.env`
+(`DET_MODEL`, `REC_MODEL`, `CUDA_TAG`, `PADDLE_GPU_VERSION`); the published host
+port is `API_PORT`.
 
 ---
 
@@ -251,10 +281,10 @@ The `.spec` reads this value to include only the selected model in the bundle.
 poetry run pyinstaller image_ocr_identifier.spec --noconfirm
 ```
 
-The output is in `dist/deidentify-karnak/`. Run it:
+The output is in `dist/image-ocr-identifier/`. Run it:
 
 ```bash
-./dist/deidentify-karnak/deidentify-karnak
+./dist/image-ocr-identifier/image-ocr-identifier
 ```
 
 The executable:
@@ -421,7 +451,7 @@ src/image_ocr_identifier/
   utils.py                    - Coordinate transforms, color conversion
   debug.py                    - Debug image output
 server_portable.py            - Entry point for the PyInstaller portable build
-deidentify-karnak.spec        - PyInstaller build specification
+image_ocr_identifier.spec     - PyInstaller build specification
 tests/
   test_router.py              - Router integration tests
   test_sensitive_data_detection.py

@@ -1,4 +1,4 @@
-# Deidentification Karnak
+# Image OCR Identifier
 
 FastAPI service that detects and masks sensitive text burned into DICOM images using OCR (PaddleOCR), then returns mask coordinates for Karnak to apply deidentification.
 

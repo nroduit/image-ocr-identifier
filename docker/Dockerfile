@@ -71,9 +71,9 @@ FROM --platform=linux/amd64 python:3.12-slim AS runtime
 ARG DET_MODEL
 ARG REC_MODEL
 
-LABEL org.opencontainers.image.title="deidentification-karnak" \
+LABEL org.opencontainers.image.title="image-ocr-identifier" \
       org.opencontainers.image.description="OCR-based DICOM burned-in text deidentification API" \
-      org.opencontainers.image.source="https://git.hisaas.hcuge.ch/projects/VNAI/repos/image-ocr-identifier"
+      org.opencontainers.image.source="https://github.com/nroduit/image-ocr-identifier"
 
 # Native libraries required by the OpenCV wheels (full, non-headless build) and
 # PaddlePaddle's OpenMP runtime.

@@ -1,0 +1,81 @@
+# Docker Compose for the image-ocr-identifier API.
+#
+# Two deployment profiles, selected at runtime:
+#
+#   CPU-only server:   docker compose --profile cpu up -d --build
+#   GPU (NVIDIA):      docker compose --profile gpu up -d --build
+#
+# The OCR models are baked into the image at build time, so no
+# model volume is needed and the container starts without network access.
+
+# Settings shared by both services
+x-api-base: &api-base
+  restart: unless-stopped
+  env_file:
+    - .env
+  ports:
+    - "${API_PORT:-8000}:${PORT:-8000}"
+  stop_grace_period: 30s
+  # PaddlePaddle/OpenCV can need more shared memory than the 64MB default.
+  shm_size: "1gb"
+
+
+x-api-env: &api-env
+  MODEL_DATA_PATH: /app/data
+
+services:
+  # ---------------------------------------------------------------------------
+  # CPU deployment. Runs on any host, no GPU required. PaddleOCR runs on CPU.
+  #   docker compose --profile cpu up -d --build
+  # ---------------------------------------------------------------------------
+  api-cpu:
+    <<: *api-base
+    profiles: ["cpu"]
+    build:
+      context: .
+      dockerfile: ${CPU_DOCKERFILE:-docker/Dockerfile}
+      args:
+        # These names drive BOTH the model download and the runtime model
+        # selection, so the baked models always match what the app loads.
+        DET_MODEL: ${DET_MODEL:-PP-OCRv6_medium_det}
+        REC_MODEL: ${REC_MODEL:-PP-OCRv6_medium_rec}
+    image: image-ocr-identifier:cpu
+    container_name: image-ocr-identifier-cpu
+    environment:
+      <<: *api-env
+      WORKERS: ${CPU_WORKERS:-2}
+
+  # ---------------------------------------------------------------------------
+  # GPU deployment (NVIDIA). Requires NVIDIA drivers + the NVIDIA Container
+  # Toolkit on the host. PaddleOCR runs on the GPU (OCR_DEVICE=gpu).
+  #   docker compose --profile gpu up -d --build
+  # ---------------------------------------------------------------------------
+  api-gpu:
+    <<: *api-base
+    profiles: ["gpu"]
+    build:
+      context: .
+      dockerfile: ${GPU_DOCKERFILE:-docker/Dockerfile.gpu}
+      args:
+        DET_MODEL: ${DET_MODEL:-PP-OCRv6_medium_det}
+        REC_MODEL: ${REC_MODEL:-PP-OCRv6_medium_rec}
+        # Match these to the host's CUDA driver. See docker/Dockerfile.gpu and
+        # https://www.paddlepaddle.org.cn/install/quick
+        CUDA_TAG: ${CUDA_TAG:-cu126}
+        PADDLE_GPU_VERSION: ${PADDLE_GPU_VERSION:-3.3.1}
+    image: image-ocr-identifier:gpu
+    container_name: image-ocr-identifier-gpu
+
+    # Each worker loads the models into VRAM, so keep the count small.
+    environment:
+      <<: *api-env
+      OCR_DEVICE: gpu
+      WORKERS: ${GPU_WORKERS:-1}
+    # Expose the host GPUs to the container (equivalent to `docker run --gpus all`).
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
