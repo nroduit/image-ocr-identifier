@@ -37,7 +37,7 @@ packages = [{include = "image_ocr_identifier", from = "src"}]
 [tool.poetry.group.dev.dependencies]
 pyinstaller = ">=6.0,<7.0"
 pytest = ">=9.0.3,<10.0.0"
-ruff = ">=0.9,<1.0"
+ruff = ">=0.15.21,<1.0"
 requests = "^2.34.2"
 
 [tool.pytest.ini_options]
