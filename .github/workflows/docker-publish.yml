@@ -17,8 +17,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # TODO: replace CHANGEME with your Docker Hub namespace (user or org) once the
-  # account exists
   IMAGE_NAME: nroduit/image-ocr-identifier
 
 jobs:

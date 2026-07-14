@@ -17,8 +17,8 @@
 # =============================================================================
 
 # Model names shared across stages.
-ARG DET_MODEL=PP-OCRv5_mobile_det
-ARG REC_MODEL=latin_PP-OCRv5_mobile_rec
+ARG DET_MODEL=PP-OCRv6_medium_det
+ARG REC_MODEL=PP-OCRv6_medium_rec
 
 # =============================================================================
 # Stage 1 - OCR models
@@ -30,9 +30,9 @@ FROM python:3.12-slim AS models
 
 ARG DET_MODEL
 ARG REC_MODEL
-# Pin per-model revisions for fully reproducible builds (default: latest main).
-ARG DET_REVISION=main
-ARG REC_REVISION=main
+# Pin per-model revisions for fully reproducible builds.
+ARG DET_REVISION=8e0f56fb2ef86b461d99cfc7ac5c137738985f61
+ARG REC_REVISION=e5a92bcbc5cc1b494628e458d267778f0704fd7c
 # Point at an internal HuggingFace mirror for air-gapped/enterprise networks.
 ARG HF_ENDPOINT=https://huggingface.co
 

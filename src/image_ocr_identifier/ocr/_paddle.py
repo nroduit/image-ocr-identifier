@@ -21,8 +21,8 @@ def _get_ocr():
     os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
     from paddleocr import PaddleOCR
 
-    det_model_name = os.environ.get("OCR_DET_MODEL", "PP-OCRv5_mobile_det")
-    rec_model_name = os.environ.get("OCR_REC_MODEL", "latin_PP-OCRv5_mobile_rec")
+    det_model_name = os.environ.get("OCR_DET_MODEL", "PP-OCRv6_medium_det")
+    rec_model_name = os.environ.get("OCR_REC_MODEL", "PP-OCRv6_medium_rec")
     det_model_dir = os.environ.get(
         "OCR_DET_MODEL_DIR",
         str(_BASE_DATA_PATH / "models" / "detection" / det_model_name),
