@@ -16,31 +16,65 @@ ARG REC_MODEL=latin_PP-OCRv5_mobile_rec
 # Stage 1 - OCR models
 # Downloads the PaddleOCR detection and recognition models from HuggingFace at
 # build time so the image is self-contained and starts without network access.
-# Models are small and version-pinned; baking them in keeps startup fast and
-# reproducible.
+# snapshot_download is layout-agnostic and resilient (retries, resume, integrity
+# checks); allow_patterns fetches only the files that exist, so it works across
+# model versions regardless of whether they ship config.json (PP-OCRv6 does not).
 # =============================================================================
-FROM alpine:3.24 AS models
+FROM python:3.12-slim AS models
 
-ARG HF_BASE=https://huggingface.co/PaddlePaddle
 ARG DET_MODEL
 ARG REC_MODEL
+# Pin per-model revisions for fully reproducible builds (default: latest main).
+ARG DET_REVISION=main
+ARG REC_REVISION=main
+# Point at an internal HuggingFace mirror for air-gapped/enterprise networks.
+ARG HF_ENDPOINT=https://huggingface.co
 
-RUN apk add --no-cache ca-certificates curl
-
+# Trust the corporate TLS-inspection CA so pip and huggingface_hub can reach the
+# network. With no .crt files in ./certs this is a harmless no-op.
 COPY certs/ /usr/local/share/ca-certificates/
-RUN update-ca-certificates
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && update-ca-certificates
 
-RUN set -eux; \
-    for spec in "detection:${DET_MODEL}" "recognition:${REC_MODEL}"; do \
-        kind="${spec%%:*}"; name="${spec##*:}"; \
-        dest="/models/${kind}/${name}"; \
-        mkdir -p "${dest}"; \
-        for f in config.json inference.json inference.pdiparams inference.yml; do \
-            curl -fSL --retry 5 --retry-delay 2 --retry-all-errors \
-                -o "${dest}/${f}" \
-                "${HF_BASE}/${name}/resolve/main/${f}"; \
-        done; \
-    done
+ENV HF_HUB_DISABLE_TELEMETRY=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_CERT=/etc/ssl/certs/ca-certificates.crt \
+    REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
+    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+    HF_ENDPOINT=${HF_ENDPOINT} \
+    DET_MODEL=${DET_MODEL} \
+    REC_MODEL=${REC_MODEL} \
+    DET_REVISION=${DET_REVISION} \
+    REC_REVISION=${REC_REVISION}
+
+RUN pip install --no-cache-dir "huggingface_hub>=0.25,<1.0"
+
+RUN python3 <<'PY'
+import glob
+import os
+import shutil
+
+from huggingface_hub import snapshot_download
+
+patterns = ["inference.json", "inference.pdiparams", "inference.yml", "config.json"]
+jobs = (
+    ("detection", os.environ["DET_MODEL"], os.environ["DET_REVISION"]),
+    ("recognition", os.environ["REC_MODEL"], os.environ["REC_REVISION"]),
+)
+for kind, name, revision in jobs:
+    snapshot_download(
+        repo_id=f"PaddlePaddle/{name}",
+        revision=revision,
+        allow_patterns=patterns,
+        local_dir=f"/models/{kind}/{name}",
+    )
+
+for cache in glob.glob("/models/**/.cache", recursive=True):
+    shutil.rmtree(cache, ignore_errors=True)
+PY
 
 # =============================================================================
 # Stage 2 - Python dependencies
