@@ -382,6 +382,7 @@ def test_detect_sensitive_data_with_date_matches():
             "2019Nov08",
             "2019Nov 08",
             "Né(..20/11/1880",
+            "08-Nov-19",
         ],
         "boxes": [
             [0, 0, 10, 10],
@@ -390,6 +391,7 @@ def test_detect_sensitive_data_with_date_matches():
             [60, 60, 70, 70],
             [80, 80, 90, 90],
             [100, 100, 110, 110],
+            [120, 120, 130, 130],
         ],
     }
     sensitive_data = {
@@ -398,12 +400,19 @@ def test_detect_sensitive_data_with_date_matches():
         "PatientBirthDate": "18801120",
     }
     result = detect_sensitive_data(ocr_result, sensitive_data)
-    assert result["texts"] == ["world", "2019Nov08", "2019Nov 08", "Né(..20/11/1880"]
+    assert result["texts"] == [
+        "world",
+        "2019Nov08",
+        "2019Nov 08",
+        "Né(..20/11/1880",
+        "08-Nov-19",
+    ]
     assert result["boxes"] == [
         [20, 20, 30, 30],
         [60, 60, 70, 70],
         [80, 80, 90, 90],
         [100, 100, 110, 110],
+        [120, 120, 130, 130],
     ]
 
 

@@ -581,6 +581,7 @@ def _text_month_variants(dt: datetime) -> set[str]:
     m = dt.month - 1  # 0-indexed
     d = dt.day
     y = dt.year
+    yy = y % 100  # 2-digit year, e.g. "08-Nov-19"
     variants = set()
     for month_name in (
         MONTHS_EN[m],
@@ -603,6 +604,10 @@ def _text_month_variants(dt: datetime) -> set[str]:
                 f"{y}{month_name} {d:02d}",
                 f"{y} {month_name}{d}",
                 f"{y} {month_name}{d:02d}",
+                f"{d} {month_name} {yy:02d}",
+                f"{d:02d} {month_name} {yy:02d}",
+                f"{month_name} {d} {yy:02d}",
+                f"{month_name} {d:02d} {yy:02d}",
             }
         )
     return variants
