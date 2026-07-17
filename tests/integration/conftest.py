@@ -19,6 +19,7 @@ from image_ocr_identifier.main import app
 
 DATASET_DIR = Path(__file__).parent.parent.parent / "data" / "integration_test"
 GOLDEN_DIR = DATASET_DIR / "golden"
+REPORTING_GOLDEN_DIR = DATASET_DIR / "golden_reporting"
 
 
 def _is_dicom_file(path: Path) -> bool:
@@ -42,6 +43,7 @@ def discover_dicom_files() -> list[str]:
         for p in DATASET_DIR.rglob("*")
         if p.is_file()
         and GOLDEN_DIR not in p.parents
+        and REPORTING_GOLDEN_DIR not in p.parents
         and not p.name.startswith(".")
         and _is_dicom_file(p)
     ]
