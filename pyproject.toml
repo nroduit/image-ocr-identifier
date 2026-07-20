@@ -12,7 +12,7 @@ dependencies = [
     "python-gdcm (>=3.2.2,<4.0.0)",
     "python-dotenv (>=1.2.2,<2.0.0)",
     "pip-system-certs (>=5.3,<6.0)",
-    "fastapi[standard] (>=0.139.0,<0.140.0)",
+    "fastapi[standard] (>=0.139.2,<0.140.0)",
     "rapidfuzz (>=3.14.5,<4.0.0)",
     "opencv-python (>=5.0.0.93,<6.0.0.0)",
 ]
@@ -37,7 +37,7 @@ packages = [{include = "image_ocr_identifier", from = "src"}]
 [tool.poetry.group.dev.dependencies]
 pyinstaller = ">=6.0,<7.0"
 pytest = ">=9.0.3,<10.0.0"
-ruff = ">=0.15.21,<1.0"
+ruff = ">=0.15.22,<1.0"
 requests = "^2.34.2"
 
 [tool.pytest.ini_options]
