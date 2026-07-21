@@ -14,7 +14,7 @@ x-api-base: &api-base
   env_file:
     - .env
   ports:
-    - "${API_PORT:-8000}:${PORT:-8000}"
+    - "9200:${PORT:-8000}"
   stop_grace_period: 30s
   # PaddlePaddle/OpenCV can need more shared memory than the 64MB default.
   shm_size: "1gb"
