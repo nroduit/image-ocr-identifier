@@ -38,8 +38,6 @@ def detect_sensitive_data(
     for i in sorted(sensitive_indices):
         filtered_texts.append(ocr_texts[i])
         filtered_boxes.append(numpy_to_python_type(ocr_boxes[i]))
-        # Do not log the OCR text itself: it is patient data (PHI). Log only the
-        # index and box coordinates, which are safe for diagnostics.
         logger.debug("Sensitive data detected at index %d, box %s", i, ocr_boxes[i])
 
     return {
