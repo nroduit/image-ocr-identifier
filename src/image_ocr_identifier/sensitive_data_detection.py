@@ -38,9 +38,9 @@ def detect_sensitive_data(
     for i in sorted(sensitive_indices):
         filtered_texts.append(ocr_texts[i])
         filtered_boxes.append(numpy_to_python_type(ocr_boxes[i]))
-        logger.debug(
-            "Sensitive data detected: '%s' at box %s", ocr_texts[i], ocr_boxes[i]
-        )
+        # Do not log the OCR text itself: it is patient data (PHI). Log only the
+        # index and box coordinates, which are safe for diagnostics.
+        logger.debug("Sensitive data detected at index %d, box %s", i, ocr_boxes[i])
 
     return {
         "texts": filtered_texts,
@@ -323,9 +323,9 @@ def is_sensitive(
             if len(text) <= 5 and fuzz.ratio(text, term) < 70:
                 continue
             logger.debug(
-                "Partial Match found: '%s' matches '%s' with score %d",
-                text,
-                term,
+                "Partial match: len(text)=%d len(term)=%d score=%d",
+                len(text),
+                len(term),
                 score,
             )
             return True
@@ -337,12 +337,13 @@ def token_sensitive(text, lookup):
 
     for token in tokens:
         for term in lookup:
-            if fuzz.ratio(token, term) > 90:
+            score = fuzz.ratio(token, term)
+            if score > 90:
                 logger.debug(
-                    " Token Match found: '%s' matches '%s' with score %d",
-                    text,
-                    term,
-                    fuzz.ratio(token, term),
+                    "Token match: len(token)=%d len(term)=%d score=%d",
+                    len(token),
+                    len(term),
+                    score,
                 )
                 return True
     return False
@@ -372,9 +373,9 @@ def name_token_sensitive(
         distance = Levenshtein.distance(text, term)
         if distance <= max_edits:
             logger.debug(
-                "Name token match: '%s' matches '%s' with distance %d",
-                text,
-                term,
+                "Name token match: len(text)=%d len(term)=%d distance=%d",
+                len(text),
+                len(term),
                 distance,
             )
             return True
