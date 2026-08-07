@@ -23,6 +23,8 @@ on:
         options:
           - PP-OCRv5_mobile
           - PP-OCRv6_small
+          - PP-OCRv6_medium
+          - PP-OCRv6_tiny
 
 # Required so the tag build can create/update the GitHub Release.
 permissions:
