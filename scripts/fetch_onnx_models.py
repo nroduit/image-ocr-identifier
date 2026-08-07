@@ -70,6 +70,6 @@ if __name__ == "__main__":
     default = dotenv_values(REPO_ROOT / ".env").get("OCR_MODEL", "PP-OCRv5_mobile")
     model = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("OCR_MODEL", default)
     if model not in MODELS:
-        sys.exit(f"OCR_MODEL inconnu: {model}. Choix: {list(MODELS)}")
+        sys.exit(f"OCR_MODEL unknown: {model}. Choices : {list(MODELS)}")
     fetch(model)
-    print(f"Modèle ONNX '{model}' récupéré dans {ONNX_DIR}")
+    print(f"Model ONNX '{model}' retrieved in {ONNX_DIR}")
