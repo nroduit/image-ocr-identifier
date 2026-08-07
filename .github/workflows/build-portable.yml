@@ -69,6 +69,12 @@ jobs:
       # rapid extra = onnxruntime + rapidocr; dev group brings PyInstaller.
       - name: Install dependencies (rapid + dev)
         run: poetry install --no-interaction --extras rapid
+      
+      - name: Fetch the ONNX model from HuggingFace
+        shell: bash
+        env:
+          HF_HUB_DISABLE_TELEMETRY: "1"
+        run: poetry run python scripts/fetch_onnx_models.py "${{ github.event.inputs.ocr_model || 'PP-OCRv5_mobile' }}"
 
       # UPX compresses the bundle. It is unreliable on macOS arm64 and corrupts
       # bundled DLLs on Windows (onnxruntime/OpenCV/CPython), so the .spec only
