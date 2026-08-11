@@ -293,6 +293,51 @@ The executable:
 - Listens on `127.0.0.1:8000` by default (override with `PORT` and `HOST` env vars)
 - Runs a single worker (no multiprocessing)
 
+### Running a downloaded build on macOS
+
+When the portable build is downloaded from GitHub, macOS Gatekeeper quarantines the unsigned binary and blocks it with "cannot be opened because the developer cannot be verified".
+
+First, extract the archive and change into the extracted folder (the commands below use relative paths, so you must run them from inside that folder):
+
+```bash
+# Extract the archive (adjust the file name to the one you downloaded)
+tar -xzf image-ocr-identifier-*-macos-arm64.tar.gz
+
+# Move into the extracted folder that contains the executable
+cd image-ocr-identifier
+```
+
+Then grant execution rights and clear the quarantine flag:
+
+```bash
+# Make the binary executable (tar usually preserves +x, but set it just in case)
+chmod +x image-ocr-identifier
+
+# Remove the Gatekeeper quarantine on the WHOLE folder (recursive),
+# otherwise macOS blocks the binary and its .dylib with "cannot be opened"
+xattr -dr com.apple.quarantine .
+```
+
+Finally, start the service from the same folder:
+
+```bash
+./image-ocr-identifier
+```
+
+If it is bundled inside the Karnak portable package, the same quarantine applies
+to the executable shipped under `image-ocr-identifier/`. Clear it once on that folder
+(`xattr -dr com.apple.quarantine image-ocr-identifier`), then start the sidecar the
+normal Karnak way, from the Karnak root folder:
+
+```bash
+sh run.sh
+```
+
+The service listens on `http://127.0.0.1:8000`. If macOS still blocks it, open
+**System Settings > Privacy & Security** and click **Open Anyway**.
+
+> The `macos-arm64` build targets Apple Silicon Macs (M1/M2/M3/M4). On an Intel Mac, use an `x86_64` build if one is provided.
+
 ### What is excluded from the bundle
 
 PaddlePaddle, PyTorch, and other heavy DL frameworks are excluded via the `.spec` file. Only the ONNX runtime (~50 Mo) is bundled.
