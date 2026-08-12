@@ -27,8 +27,10 @@ paddle = [
 # rapidocr-onnxruntime only supports Python < 3.13, so the whole extra is
 # gated behind that marker
 rapid = [
+    "huggingface-hub (>=1.27.0,<2.0.0)",
     "onnxruntime (>=1.18,<2.0) ; python_version < '3.13'",
     "rapidocr-onnxruntime (>=1.4,<2.0) ; python_version < '3.13'",
+    "pyyaml (>=6.0.2,<6.0.3)",
 ]
 
 [tool.poetry]
