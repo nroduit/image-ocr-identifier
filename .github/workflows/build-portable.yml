@@ -23,6 +23,8 @@ on:
         options:
           - PP-OCRv5_mobile
           - PP-OCRv6_small
+          - PP-OCRv6_medium
+          - PP-OCRv6_tiny
 
 # Required so the tag build can create/update the GitHub Release.
 permissions:
@@ -42,6 +44,9 @@ jobs:
             asset: windows-x86_64
 
     runs-on: ${{ matrix.os }}
+
+    env:
+      OCR_MODEL: ${{ github.event.inputs.ocr_model || 'PP-OCRv5_mobile' }}
 
     steps:
       - name: Check out the repository
@@ -64,11 +69,17 @@ jobs:
       # Defaults to PP-OCRv5_mobile on tag builds.
       - name: Select the OCR model
         shell: bash
-        run: echo "OCR_MODEL=${{ github.event.inputs.ocr_model || 'PP-OCRv5_mobile' }}" > .env
+        run: echo "OCR_MODEL=${{ env.OCR_MODEL }}" > .env
 
       # rapid extra = onnxruntime + rapidocr; dev group brings PyInstaller.
       - name: Install dependencies (rapid + dev)
         run: poetry install --no-interaction --extras rapid
+
+      - name: Fetch the ONNX model from HuggingFace
+        shell: bash
+        env:
+          HF_HUB_DISABLE_TELEMETRY: "1"
+        run: poetry run python scripts/fetch_onnx_models.py "${{ env.OCR_MODEL }}"
 
       # UPX compresses the bundle. It is unreliable on macOS arm64 and corrupts
       # bundled DLLs on Windows (onnxruntime/OpenCV/CPython), so the .spec only
@@ -89,20 +100,20 @@ jobs:
       - name: Package the bundle (Linux/macOS)
         if: runner.os != 'Windows'
         shell: bash
-        run: tar -czf "image-ocr-identifier-${{ matrix.asset }}.tar.gz" -C dist image-ocr-identifier
+        run: tar -czf "image-ocr-identifier-${{ env.OCR_MODEL }}-${{ matrix.asset }}.tar.gz" -C dist image-ocr-identifier
 
       - name: Package the bundle (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Compress-Archive -Path dist/image-ocr-identifier -DestinationPath "image-ocr-identifier-${{ matrix.asset }}.zip"
+        run: Compress-Archive -Path dist/image-ocr-identifier -DestinationPath "image-ocr-identifier-${{ env.OCR_MODEL }}-${{ matrix.asset }}.zip"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
-          name: image-ocr-identifier-${{ matrix.asset }}
+          name: image-ocr-identifier-${{ env.OCR_MODEL }}-${{ matrix.asset }}
           path: |
-            image-ocr-identifier-${{ matrix.asset }}.tar.gz
-            image-ocr-identifier-${{ matrix.asset }}.zip
+            image-ocr-identifier-${{ env.OCR_MODEL }}-${{ matrix.asset }}.tar.gz
+            image-ocr-identifier-${{ env.OCR_MODEL }}-${{ matrix.asset }}.zip
           if-no-files-found: ignore
 
       - name: Attach archives to the release
@@ -110,5 +121,5 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            image-ocr-identifier-${{ matrix.asset }}.tar.gz
-            image-ocr-identifier-${{ matrix.asset }}.zip
+            image-ocr-identifier-${{ env.OCR_MODEL }}-${{ matrix.asset }}.tar.gz
+            image-ocr-identifier-${{ env.OCR_MODEL }}-${{ matrix.asset }}.zip
