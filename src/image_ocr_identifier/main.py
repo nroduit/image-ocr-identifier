@@ -16,6 +16,13 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+# Erase uvicorn's logging config to be coherent with the rest of the app.
+UVICORN_LOG_CONFIG = uvicorn.config.LOGGING_CONFIG.copy()
+UVICORN_LOG_CONFIG["formatters"] = {
+    name: {**fmt, "fmt": f"%(asctime)s {fmt['fmt']}"}
+    for name, fmt in UVICORN_LOG_CONFIG["formatters"].items()
+}
+
 app = FastAPI(
     title="Image OCR Identifier",
     description="API for deidentifying images using OCR",
@@ -45,4 +52,5 @@ if __name__ == "__main__":
         port=int(os.environ.get("PORT", 8000)),
         h11_max_incomplete_event_size=50 * 1024 * 1024,
         workers=int(os.environ.get("WORKERS", os.cpu_count() or 1)),
+        log_config=UVICORN_LOG_CONFIG,
     )

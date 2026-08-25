@@ -46,7 +46,7 @@ def _run() -> None:
 
     # Import the app eagerly so import errors are caught here (and logged)
     # instead of being swallowed by uvicorn's import machinery under PyInstaller.
-    from image_ocr_identifier.main import app
+    from image_ocr_identifier.main import UVICORN_LOG_CONFIG, app
 
     uvicorn.run(
         app,
@@ -54,6 +54,7 @@ def _run() -> None:
         port=int(os.environ.get("PORT", "8000")),
         workers=1,
         h11_max_incomplete_event_size=50 * 1024 * 1024,
+        log_config=UVICORN_LOG_CONFIG,
     )
 
 
