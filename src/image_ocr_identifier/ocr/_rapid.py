@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import threading
 from pathlib import Path
 
 import numpy as np
@@ -25,6 +26,9 @@ _OCR_BORDER_PAD = 32
 _OCR_MAX_SIDE_LEN = 3000
 
 _ocr = None
+# Serialize lazy init and inference across threads within a worker process,
+# matching the PaddleBackend precaution (see _paddle.py).
+_lock = threading.Lock()
 
 
 def _get_base_data_path() -> Path:
@@ -94,37 +98,41 @@ def _get_ocr():
     if _ocr is not None:
         return _ocr
 
-    from rapidocr_onnxruntime import RapidOCR
+    with _lock:
+        if _ocr is not None:
+            return _ocr
 
-    det_model_path, rec_model_path, rec_keys_path = _get_model_paths()
-    for name, path in zip(
-        ("detection", "recognition", "keys"),
-        (det_model_path, rec_model_path, rec_keys_path),
-        strict=False,
-    ):
-        if not Path(path).is_file():
-            raise RuntimeError(f"OCR {name} file not found: {path}")
+        from rapidocr_onnxruntime import RapidOCR
 
-    logger.info(
-        "Loading RapidOCR: det=%s rec=%s keys=%s",
-        det_model_path,
-        rec_model_path,
-        rec_keys_path,
-    )
+        det_model_path, rec_model_path, rec_keys_path = _get_model_paths()
+        for name, path in zip(
+            ("detection", "recognition", "keys"),
+            (det_model_path, rec_model_path, rec_keys_path),
+            strict=False,
+        ):
+            if not Path(path).is_file():
+                raise RuntimeError(f"OCR {name} file not found: {path}")
 
-    _ocr = RapidOCR(
-        det_model_path=det_model_path,
-        rec_model_path=rec_model_path,
-        rec_keys_path=rec_keys_path,
-        use_det=True,
-        use_cls=False,
-        use_rec=True,
-        det_thresh=_DET_THRESH,
-        det_box_thresh=_DET_BOX_THRESH,
-        text_score=0.0,
-        max_side_len=_OCR_MAX_SIDE_LEN,
-    )
-    return _ocr
+        logger.info(
+            "Loading RapidOCR: det=%s rec=%s keys=%s",
+            det_model_path,
+            rec_model_path,
+            rec_keys_path,
+        )
+
+        _ocr = RapidOCR(
+            det_model_path=det_model_path,
+            rec_model_path=rec_model_path,
+            rec_keys_path=rec_keys_path,
+            use_det=True,
+            use_cls=False,
+            use_rec=True,
+            det_thresh=_DET_THRESH,
+            det_box_thresh=_DET_BOX_THRESH,
+            text_score=0.0,
+            max_side_len=_OCR_MAX_SIDE_LEN,
+        )
+        return _ocr
 
 
 class RapidBackend:
@@ -135,7 +143,9 @@ class RapidBackend:
         padded = cv2.copyMakeBorder(
             image, pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=(0, 0, 0)
         )
-        result, _ = _get_ocr()(padded, use_det=True, use_cls=False, use_rec=True)
+        ocr = _get_ocr()
+        with _lock:
+            result, _ = ocr(padded, use_det=True, use_cls=False, use_rec=True)
         if not result:
             return [], []
 
