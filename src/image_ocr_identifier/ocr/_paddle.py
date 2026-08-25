@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 from pathlib import Path
 
 import numpy as np
@@ -11,6 +12,9 @@ _BASE_DATA_PATH = Path(
 )
 
 _ocr = None
+# PaddleOCR's predictor is not safe for concurrent use from multiple threads;
+# this lock serializes both lazy init and inference within a worker process.
+_lock = threading.Lock()
 
 
 def _get_ocr():
@@ -18,57 +22,63 @@ def _get_ocr():
     if _ocr is not None:
         return _ocr
 
-    os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
-    from paddleocr import PaddleOCR
+    with _lock:
+        if _ocr is not None:
+            return _ocr
 
-    det_model_name = os.environ.get("OCR_DET_MODEL", "PP-OCRv6_medium_det")
-    rec_model_name = os.environ.get("OCR_REC_MODEL", "PP-OCRv6_medium_rec")
-    det_model_dir = os.environ.get(
-        "OCR_DET_MODEL_DIR",
-        str(_BASE_DATA_PATH / "models" / "detection" / det_model_name),
-    )
-    rec_model_dir = os.environ.get(
-        "OCR_REC_MODEL_DIR",
-        str(_BASE_DATA_PATH / "models" / "recognition" / rec_model_name),
-    )
+        os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
+        from paddleocr import PaddleOCR
 
-    for name, directory in (
-        ("detection", det_model_dir),
-        ("recognition", rec_model_dir),
-    ):
-        if not Path(directory).is_dir():
-            raise RuntimeError(f"OCR {name} model directory not found: {directory}")
+        det_model_name = os.environ.get("OCR_DET_MODEL", "PP-OCRv6_medium_det")
+        rec_model_name = os.environ.get("OCR_REC_MODEL", "PP-OCRv6_medium_rec")
+        det_model_dir = os.environ.get(
+            "OCR_DET_MODEL_DIR",
+            str(_BASE_DATA_PATH / "models" / "detection" / det_model_name),
+        )
+        rec_model_dir = os.environ.get(
+            "OCR_REC_MODEL_DIR",
+            str(_BASE_DATA_PATH / "models" / "recognition" / rec_model_name),
+        )
 
-    # Device selection: "cpu", "gpu", "gpu:0", ... Unset means the PaddleOCR
-    # default (CPU).
-    device = os.environ.get("OCR_DEVICE") or None
+        for name, directory in (
+            ("detection", det_model_dir),
+            ("recognition", rec_model_dir),
+        ):
+            if not Path(directory).is_dir():
+                raise RuntimeError(f"OCR {name} model directory not found: {directory}")
 
-    logger.info(
-        "Loading PaddleOCR: det=%s rec=%s device=%s",
-        det_model_dir,
-        rec_model_dir,
-        device,
-    )
+        # Device selection: "cpu", "gpu", "gpu:0", ... Unset means the
+        # PaddleOCR default (CPU).
+        device = os.environ.get("OCR_DEVICE") or None
 
-    _ocr = PaddleOCR(
-        use_textline_orientation=False,
-        text_detection_model_name=det_model_name,
-        text_detection_model_dir=det_model_dir,
-        text_recognition_model_name=rec_model_name,
-        text_recognition_model_dir=rec_model_dir,
-        use_doc_orientation_classify=False,
-        use_doc_unwarping=False,
-        text_det_thresh=0.2,
-        text_det_box_thresh=0.4,
-        enable_mkldnn=False,
-        device=device,
-    )
-    return _ocr
+        logger.info(
+            "Loading PaddleOCR: det=%s rec=%s device=%s",
+            det_model_dir,
+            rec_model_dir,
+            device,
+        )
+
+        _ocr = PaddleOCR(
+            use_textline_orientation=False,
+            text_detection_model_name=det_model_name,
+            text_detection_model_dir=det_model_dir,
+            text_recognition_model_name=rec_model_name,
+            text_recognition_model_dir=rec_model_dir,
+            use_doc_orientation_classify=False,
+            use_doc_unwarping=False,
+            text_det_thresh=0.2,
+            text_det_box_thresh=0.4,
+            enable_mkldnn=False,
+            device=device,
+        )
+        return _ocr
 
 
 class PaddleBackend:
     def detect(self, image: np.ndarray) -> tuple[list[str], list[list[int]]]:
-        result = _get_ocr().predict(image, return_word_box=False)
+        ocr = _get_ocr()
+        with _lock:
+            result = ocr.predict(image, return_word_box=False)
         if not result:
             return [], []
         texts = list(result[0]["rec_texts"])
