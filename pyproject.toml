@@ -10,7 +10,7 @@ requires-python = ">=3.12,<3.14"
 dependencies = [
     "pydicom (>=3.0.2,<4.0.0)",
     "python-gdcm (>=3.2.2,<4.0.0)",
-    "python-dotenv (>=1.2.2,<2.0.0)",
+    "python-dotenv (>=1.2.3,<2.0.0)",
     "pip-system-certs (>=5.3,<6.0)",
     "fastapi[standard] (>=0.139.2,<0.140.0)",
     "rapidfuzz (>=3.14.5,<4.0.0)",
@@ -27,7 +27,7 @@ paddle = [
 # rapidocr-onnxruntime only supports Python < 3.13, so the whole extra is
 # gated behind that marker
 rapid = [
-    "huggingface-hub (>=1.27.0,<2.0.0)",
+    "huggingface-hub (>=1.29.0,<2.0.0)",
     "onnxruntime (>=1.18,<2.0) ; python_version < '3.13'",
     "rapidocr-onnxruntime (>=1.4,<2.0) ; python_version < '3.13'",
     "pyyaml (>=6.0.2,<6.0.3)",
@@ -37,9 +37,9 @@ rapid = [
 packages = [{include = "image_ocr_identifier", from = "src"}]
 
 [tool.poetry.group.dev.dependencies]
-pyinstaller = ">=6.22.0,<7.0"
+pyinstaller = ">=6.22.2,<7.0"
 pytest = ">=9.0.3,<10.0.0"
-ruff = ">=0.16.2,<1.0"
+ruff = ">=0.16.5,<1.0"
 requests = "^2.34.2"
 
 [tool.pytest.ini_options]
