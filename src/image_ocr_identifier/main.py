@@ -26,7 +26,7 @@ UVICORN_LOG_CONFIG["formatters"] = {
 app = FastAPI(
     title="Image OCR Identifier",
     description="API for deidentifying images using OCR",
-    version="0.0.1",
+    version="0.1.0",
 )
 app.include_router(deidentify_router)
 app.include_router(reporting_router)
