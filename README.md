@@ -275,6 +275,24 @@ OCR_MODEL=PP-OCRv5_mobile
 
 The `.spec` reads this value to include only the selected model in the bundle.
 
+Available models: `PP-OCRv5_mobile`, `PP-OCRv6_tiny`, `PP-OCRv6_small`, `PP-OCRv6_medium`.
+
+### Download the ONNX model
+
+The `.onnx` weights are not committed to the repository. Download them from HuggingFace before building:
+
+```bash
+# Uses OCR_MODEL from .env
+poetry run python scripts/fetch_onnx_models.py
+
+# Or pass the model name explicitly
+poetry run python scripts/fetch_onnx_models.py PP-OCRv6_small
+```
+
+The script writes `inference.onnx` (or `det.onnx`/`rec.onnx` for v5) and `keys.txt` under `data/models/onnx/` (see [Rapid backend models (ONNX)](#rapid-backend-models-onnx)).
+
+If this step is skipped, the build still succeeds but the executable fails on the first request with `RuntimeError: OCR detection file not found: .../_internal/data/models/onnx/.../inference.onnx`.
+
 ### Build
 
 ```bash
