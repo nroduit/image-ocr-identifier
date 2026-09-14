@@ -27,7 +27,7 @@ paddle = [
 # rapidocr-onnxruntime only supports Python < 3.13, so the whole extra is
 # gated behind that marker
 rapid = [
-    "huggingface-hub (>=1.30.0,<2.0.0)",
+    "huggingface-hub (>=1.31.0,<2.0.0)",
     "onnxruntime (>=1.18,<2.0) ; python_version < '3.13'",
     "rapidocr-onnxruntime (>=1.4,<2.0) ; python_version < '3.13'",
     "pyyaml (>=6.0.2,<6.0.3)",
@@ -39,7 +39,7 @@ packages = [{include = "image_ocr_identifier", from = "src"}]
 [tool.poetry.group.dev.dependencies]
 pyinstaller = ">=6.22.2,<7.0"
 pytest = ">=9.0.3,<10.0.0"
-ruff = ">=0.16.6,<1.0"
+ruff = ">=0.16.7,<1.0"
 requests = "^2.34.2"
 
 [tool.pytest.ini_options]
