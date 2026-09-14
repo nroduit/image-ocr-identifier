@@ -13,7 +13,7 @@ ARG REC_MODEL=PP-OCRv6_medium_rec
 # so it works across model versions regardless of whether they ship config.json
 # (PP-OCRv6 does not).
 # =============================================================================
-FROM python:3.12-slim AS models
+FROM python:3.14-slim AS models
 
 ARG DET_MODEL
 ARG REC_MODEL
@@ -64,7 +64,7 @@ PY
 # using the committed poetry.lock for reproducible builds.
 # Pinned to linux/amd64: paddlepaddle only publishes x86_64 Linux wheels.
 # =============================================================================
-FROM --platform=linux/amd64 python:3.12-slim AS builder
+FROM --platform=linux/amd64 python:3.14-slim AS builder
 
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -93,7 +93,7 @@ RUN poetry export --only main --extras paddle --without-hashes -f requirements.t
 # required by OpenCV and PaddlePaddle.
 # Pinned to linux/amd64: paddlepaddle only publishes x86_64 Linux wheels.
 # =============================================================================
-FROM --platform=linux/amd64 python:3.12-slim AS runtime
+FROM --platform=linux/amd64 python:3.14-slim AS runtime
 
 ARG DET_MODEL
 ARG REC_MODEL
