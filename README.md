@@ -1,3 +1,7 @@
+[![Release](https://img.shields.io/github/v/release/nroduit/image-ocr-identifier)](https://github.com/nroduit/image-ocr-identifier/releases/latest)
+[![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https://raw.githubusercontent.com/nroduit/image-ocr-identifier/main/pyproject.toml)](https://github.com/nroduit/image-ocr-identifier/blob/main/pyproject.toml)
+[![Tests](https://github.com/nroduit/image-ocr-identifier/actions/workflows/tests.yml/badge.svg)](https://github.com/nroduit/image-ocr-identifier/actions/workflows/tests.yml)
+[![Docker Pulls](https://img.shields.io/docker/pulls/nroduit/image-ocr-identifier)](https://hub.docker.com/r/nroduit/image-ocr-identifier)
 [![License](https://img.shields.io/badge/License-EPL%202.0-blue.svg)](https://opensource.org/licenses/EPL-2.0) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 # Image OCR Identifier
